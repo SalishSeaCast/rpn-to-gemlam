@@ -1,0 +1,10 @@
+# conda environment description file for docs build environment
+# on readthedocs.org
+
+name: sphinx-build
+
+channels:
+  - defaults
+
+dependencies:
+  - python=3.7
