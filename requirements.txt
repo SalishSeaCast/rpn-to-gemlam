@@ -1,0 +1,44 @@
+# Python packages and versions used most recently in development
+# environment
+#
+# This list is intended to be for reference only.
+# Use the conda environment description file (environment-dev.yaml)
+# to create an isolated development environment.
+
+alabaster==0.7.12
+appdirs==1.4.3
+asn1crypto==0.24.0
+atomicwrites==1.3.0
+attrs==19.1.0
+Babel==2.6.0
+black==18.9b0
+certifi==2019.3.9
+cffi==1.12.2
+chardet==3.0.4
+Click==7.0
+coverage==4.5.3
+cryptography==2.6.1
+docutils==0.14
+idna==2.8
+imagesize==1.1.0
+Jinja2==2.10
+MarkupSafe==1.1.1
+more-itertools==4.3.0
+packaging==19.0
+pluggy==0.9.0
+py==1.8.0
+pycparser==2.19
+Pygments==2.3.1
+pyOpenSSL==19.0.0
+pyparsing==2.3.1
+PySocks==1.6.8
+pytest==4.3.1
+pytz==2018.9
+requests==2.21.0
+six==1.12.0
+snowballstemmer==1.2.1
+Sphinx==1.8.5
+sphinx-rtd-theme==0.4.3
+sphinxcontrib-websupport==1.1.0
+toml==0.10.0
+urllib3==1.24.1

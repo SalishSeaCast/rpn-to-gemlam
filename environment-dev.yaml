@@ -1,0 +1,37 @@
+# conda environment description file for rpn-to-gemlam package
+# development environment
+#
+# Create a conda environment for development, testing and documentation of the package
+# with:
+#
+#   $ conda env create -f rpn-to-gemlam/environment-dev.yaml
+#   $ conda activate rpn-to-gemlam
+#   (rpn-to-gemlam)$ pip install --editable rpn-to-gemlam
+#
+# The environment will include all of the tools used to develop,
+# test, and document the rpn-to-gemlam package.
+#
+# See the requirements.txt file for an exhaustive list of all of the
+# packages installed in the environment and their versions used in
+# recent development.
+
+name: rpn-to-gemlam
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - pip
+  - python=3.7
+
+  # For unit tests
+  - coverage
+  - pytest
+
+  # For documentation
+  - sphinx
+  - sphinx_rtd_theme
+
+  # For coding style
+  - black
