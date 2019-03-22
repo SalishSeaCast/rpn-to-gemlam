@@ -29,6 +29,8 @@ by the experimental phase of the HRPDS model.
    :maxdepth: 2
    :caption: Contents:
 
+   pkg_development
+
 
 License
 =======
