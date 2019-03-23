@@ -40,6 +40,7 @@ except IOError:
 install_requires = [
     # see environment-dev.yaml for conda environment dev installation
     # see requirements.txt for versions most recently used in development
+    "Click"
 ]
 
 setup(
@@ -56,4 +57,8 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=install_requires,
+    entry_points="""
+    [console_scripts]
+    rpn-to-gemlam=rpn_to_gemlam.rpn_to_gemlam:cli
+    """,
 )
