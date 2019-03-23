@@ -53,8 +53,8 @@ Python Versions
     :target: https://docs.python.org/3.7/
     :alt: Python Version
 
-The :command:`rpn-to-gemlam` package is developed and tested using `Python`_ 3.6 or later.
-The package uses some Python language features that are not available in versions prior to 3.6,
+The :command:`rpn-to-gemlam` package is developed and tested using `Python`_ 3.7 or later.
+The package uses some Python language features that are not available in versions prior to 3.7,
 in particular:
 
 * `formatted string literals`_
