@@ -22,6 +22,7 @@ channels:
   - defaults
 
 dependencies:
+  - arrow
   - Click
   - pip
   - python=3.7
