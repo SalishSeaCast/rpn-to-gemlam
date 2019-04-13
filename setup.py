@@ -40,7 +40,8 @@ except IOError:
 install_requires = [
     # see environment-dev.yaml for conda environment dev installation
     # see requirements.txt for versions most recently used in development
-    "Click"
+    "arrow",
+    "Click",
 ]
 
 setup(
