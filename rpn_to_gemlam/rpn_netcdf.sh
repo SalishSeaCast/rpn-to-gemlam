@@ -55,6 +55,10 @@ _rpn-netcdf-hour () {
 
    # delete single variable files
    /bin/rm -f ${tmp_dir}/${day}06_*_${hr}.nc
+
+   # Reduce grid size to what is needed for SalishSeaCast
+   /usr/bin/ncea -4 -O -d y,20,285 -d x,110,365 \
+     ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 }
 
 
