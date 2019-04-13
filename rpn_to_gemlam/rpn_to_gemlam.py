@@ -17,23 +17,57 @@ from the ECCC 2007-2014 archival GEMLAM files produced by the experimental phase
 of the HRPDS model.
 """
 import logging
+import shlex
+import subprocess
 import sys
+from pathlib import Path
 
+import arrow
 import click
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-def rpn_to_gemlam():
+def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
     """Generate an atmospheric forcing file for the SalishSeaCast NEMO model
     from the ECCC 2007-2014 archival GEMLAM files produced by the experimental
     phase of the HRPDS model.
     \f
+    :param netcdf_date: Date for which to calculate netCDF file from RPN files.
+    :type netcdf_date: :py:class:`arrow.Arrow`
+
+    :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
+    :type rpn_dir: :py:class:`pathlib.Path`
+
+    :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
+    :type dest_dir: :py:class:`pathlib.Path`
     """
-    pass
+    tmp_dir = Path("/tmp/rpn_to_gemlam")
+    tmp_dir.mkdir(exist_ok=True)
+    bash_cmd = (
+        f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
+    )
+    _exec_bash_cmd(bash_cmd)
+
+
+def _exec_bash_cmd(bash_cmd):
+    rpn_netcdf_sh = Path(__file__).with_name("rpn_netcdf.sh")
+    cmd = f"bash -c {shlex.quote(f'source {rpn_netcdf_sh}; {bash_cmd}')}"
+    logging.debug(f"executing: {cmd}")
+    proc = subprocess.run(
+        shlex.split(cmd),
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    logging.debug(proc.stdout)
 
 
 @click.command(help=rpn_to_gemlam.__doc__)
+@click.argument("netcdf_date", type=click.DateTime(formats=("%Y-%m-%d",)))
+@click.argument("rpn_dir", type=click.Path(exists=True))
+@click.argument("dest_dir", type=click.Path(writable=True))
 @click.option(
     "-v",
     "--verbosity",
@@ -45,7 +79,7 @@ def rpn_to_gemlam():
         warning, error, and critical should be silent unless something bad goes wrong. 
     """,
 )
-def cli(verbosity):
+def cli(netcdf_date, rpn_dir, dest_dir, verbosity):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
     Please see:
@@ -66,4 +100,4 @@ def cli(verbosity):
         datefmt="%Y-%m-%d %H:%M:%S",
         stream=sys.stdout,
     )
-    rpn_to_gemlam()
+    rpn_to_gemlam(arrow.get(netcdf_date), rpn_dir, dest_dir)
