@@ -62,6 +62,9 @@ _rpn-netcdf-hour () {
 
    # Convert air temperature from Celcuis to Kelvin
    /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+
+   # Convert atmospheric pressure from millibars to Pascals
+   /usr/bin/ncap2 -4 -O -s "PN=PN*100" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 }
 
 
