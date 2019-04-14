@@ -73,27 +73,21 @@ rpn-netcdf () {
   rpn_dir=$2
   tmp_dir=$3
   dest_dir=$4
-#  daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
-#  for hr in {018..024}
-#  do
-#    _rpn-netcdf-hour ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
-#  done
-#
-#  day=$(date --date="${netcdf_date}" +%Y%m%d)
-#  for hr in {001..017}
-#  do
-#    _rpn-netcdf-hour ${day} ${hr} ${rpn_dir} ${tmp_dir}
-#  done
 
-  # single hour for testing
+  daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
+  for hr in {018..024}
+  do
+    _rpn-netcdf-hour ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+  done
+
   day=$(date --date="${netcdf_date}" +%Y%m%d)
-  for hr in {012..012}
+  for hr in {001..017}
   do
     _rpn-netcdf-hour ${day} ${hr} ${rpn_dir} ${tmp_dir}
   done
 
-  # # delete empty files from missing hours
-  # /usr/bin/find ${tmp_dir} -empty -delete
+  # delete empty files from missing hours
+  /usr/bin/find ${tmp_dir} -empty -delete
 
   # # concatenate netCDF hour file along time dimension
   # ncrcat -4 -L4 -O -o ${tmp_dir}/${day}06.nc ${tmp_dir}/${daym1}06_0*.nc ${dest_dir}${day}06_0*.nc
