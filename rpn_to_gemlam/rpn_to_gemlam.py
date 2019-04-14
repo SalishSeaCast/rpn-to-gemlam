@@ -24,6 +24,7 @@ from pathlib import Path
 
 import arrow
 import click
+import xarray
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
@@ -44,16 +45,51 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
     """
     tmp_dir = Path("/data/dlatorne/tmp-rpn-to-gem-lam")
     tmp_dir.mkdir(exist_ok=True)
+
     bash_cmd = (
         f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
     )
-    _exec_bash_cmd(bash_cmd)
+    _exec_bash_func(bash_cmd)
+    for hr in range(24):
+        hr_ds_path = tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+        try:
+            with xarray.open_dataset(hr_ds_path) as ds_hr:
+                logging.debug(
+                    f"calculating relative humidity & incoming longwave radiation from {hr_ds_path}"
+                )
+                da_rh, da_ilwr = _calc_rh_ilwr(ds_hr)
+        except FileNotFoundError:
+            # Missing forecast hour; we'll fill it in later
+            continue
 
 
-def _exec_bash_cmd(bash_cmd):
+def _calc_rh_ilwr(ds_hr):
+    """Calculate relative humidity and incoming longwave radiation data arrays from an
+    forecast hour dataset.
+
+    :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
+
+    :returns: Relative humidity, Incoming longwave radiation data arrrays
+    :rtype: 2-tuple of :py:class:`xarray.DataArray`
+    """
+    rh = xarray.DataArray()
+    ilwr = xarray.DataArray()
+    return rh, ilwr
+
+
+def _exec_bash_func(bash_cmd):
+    """Execute bash function from :file:`rpn_netcdf.sh` in a subprocess.
+
+    :file:`rpn_netcdf.sh` is sourced before :kbd:`bash_cmd` to bring functions defintions
+    into environment.
+
+    Bash command that is being executed and its output are logged to stdout at the DEBUG level.
+
+    :param str bash_cmd: Bash function and arguments to execute.
+    """
     rpn_netcdf_sh = Path(__file__).with_name("rpn_netcdf.sh")
     cmd = f"bash -c {shlex.quote(f'source {rpn_netcdf_sh}; {bash_cmd}')}"
-    logging.debug(f"executing: {cmd}")
+    logging.info(f"executing: {cmd}")
     proc = subprocess.run(
         shlex.split(cmd),
         check=True,
