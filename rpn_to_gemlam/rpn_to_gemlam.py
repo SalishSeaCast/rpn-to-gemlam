@@ -42,7 +42,7 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
     :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
     :type dest_dir: :py:class:`pathlib.Path`
     """
-    tmp_dir = Path("/tmp/rpn_to_gemlam")
+    tmp_dir = Path("/data/dlatorne/tmp-rpn-to-gem-lam")
     tmp_dir.mkdir(exist_ok=True)
     bash_cmd = (
         f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
