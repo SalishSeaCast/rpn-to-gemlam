@@ -59,6 +59,9 @@ _rpn-netcdf-hour () {
    # Reduce grid size to what is needed for SalishSeaCast
    /usr/bin/ncea -4 -O -d y,20,285 -d x,110,365 \
      ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+
+   # Convert air temperature from Celcuis to Kelvin
+   /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 }
 
 
