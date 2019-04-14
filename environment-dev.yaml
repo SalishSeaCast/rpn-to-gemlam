@@ -26,6 +26,7 @@ dependencies:
   - Click
   - pip
   - python=3.7
+  - xarray
 
   # For unit tests
   - coverage
