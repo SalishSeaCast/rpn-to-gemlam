@@ -24,6 +24,7 @@ from pathlib import Path
 
 import arrow
 import click
+import numpy
 import xarray
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
@@ -55,26 +56,42 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
         try:
             with xarray.open_dataset(hr_ds_path) as ds_hr:
                 logging.debug(
-                    f"calculating relative humidity & incoming longwave radiation from {hr_ds_path}"
+                    f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
                 )
-                da_rh, da_ilwr = _calc_rh_ilwr(ds_hr)
+                da_qair, da_ilwr = _calc_qair_ilwr(ds_hr)
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
 
 
-def _calc_rh_ilwr(ds_hr):
-    """Calculate relative humidity and incoming longwave radiation data arrays from an
+def _calc_qair_ilwr(ds_hr):
+    """Calculate specific humidity and incoming longwave radiation data arrays from an
     forecast hour dataset.
 
     :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
 
-    :returns: Relative humidity, Incoming longwave radiation data arrrays
+    :returns: Specific humidity, Incoming longwave radiation data arrrays
     :rtype: 2-tuple of :py:class:`xarray.DataArray`
     """
-    rh = xarray.DataArray()
-    ilwr = xarray.DataArray()
-    return rh, ilwr
+    P = ds_hr.PN / 100  # convert to hectopascals
+    # saturation water vapour at the dew point in the pure phase
+    ew = 6.112 * numpy.exp(17.62 * ds_hr.TD / (243.12 + ds_hr.TD))
+    xvw = ew / (0.01 * ds_hr.PN)  # converting P to hectopascals
+    r = 0.62198 * xvw / (1 - xvw)  # as at Td r = rw
+    qair = xarray.DataArray(r / (1 + r))
+
+    ew = ew / 1000.0  # Change vapour pressure to kPa
+    w = 465 * ew / ds_hr.TT
+    Lclr = (
+        59.38 + 113.7 * (ds_hr.TT / 273.16) ** 6 + 96.96 * numpy.sqrt(w / 2.5)
+    )  # Dilley
+    # Unsworth
+    sigma = 5.6697e-8
+    eclr = Lclr / (sigma * ds_hr.TT ** 4)
+    ewc = (1 - 0.84 * ds_hr.NT) * eclr + 0.84 * ds_hr.NT
+    ilwr = xarray.DataArray(ewc * sigma * ds_hr.TT ** 4)
+
+    return qair, ilwr
 
 
 def _exec_bash_func(bash_cmd):
