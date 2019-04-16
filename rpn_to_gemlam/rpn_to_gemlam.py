@@ -139,6 +139,15 @@ def cli(netcdf_date, rpn_dir, dest_dir, verbosity):
 
       rpn-to-gemlam --help
 
+    :param netcdf_date: Date for which to calculate netCDF file from RPN files.
+    :type netcdf_date: :py:class:`datetime.datetime`
+
+    :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
+    :type rpn_dir: :py:class:`pathlib.Path`
+
+    :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
+    :type dest_dir: :py:class:`pathlib.Path`
+
     :param str verbosity: Verbosity level of logging messages about the progress of the
                           process.
                           Choices are :kbd:`debug, info, warning, error, critical`.
