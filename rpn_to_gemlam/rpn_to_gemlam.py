@@ -53,19 +53,57 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
     _exec_bash_func(bash_cmd)
     for hr in range(24):
         hr_ds_path = tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+        hr_ds_ext_path = (
+            tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}_ext.nc"
+        )
         try:
             with xarray.open_dataset(hr_ds_path) as ds_hr:
                 logging.debug(
                     f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
                 )
-                da_qair, da_ilwr = _calc_qair_ilwr(ds_hr)
+                qair, ilwr = _calc_qair_ilwr(ds_hr)
+                ds_hr_ext = xarray.Dataset(
+                    data_vars={
+                        "atmpres": ds_hr.PN,
+                        # "LHTFL_surface":   ** needs to be calculated**
+                        "percentcloud": ds_hr.NT,
+                        "PRATE_surface": ds_hr.RT,
+                        "nav_lat": ds_hr.nav_lat,
+                        "nav_lon": ds_hr.nav_lon,
+                        "precip": ds_hr.RT,  # maybe this should be PR???
+                        "qair": qair,
+                        # "RH_2maboveground":  **needs to be calculated**
+                        "solar": ds_hr.FB,
+                        "tair": ds_hr.TT,
+                        "therm_rad": ilwr,
+                        "u_wind": ds_hr.UU,
+                        "v_wind": ds_hr.VV,
+                    },
+                    coords=ds_hr.coords,
+                    attrs=ds_hr.attrs,
+                )
+                ds_hr_ext.attrs["history"] += (
+                    f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
+                    f"Add specific humidity and incoming longwave radiation variables from "
+                    f"correlations"
+                )
+                _add_vars_metadata(ds_hr_ext)
+                encoding = {
+                    "time_counter": {
+                        "dtype": "float",
+                        "units": "seconds since 1950-01-01 00:00:00",
+                    }
+                }
+                ds_hr_ext.to_netcdf(
+                    hr_ds_ext_path, encoding=encoding, unlimited_dims=("time_counter",)
+                )
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
 
 
 def _calc_qair_ilwr(ds_hr):
-    """Calculate specific humidity and incoming longwave radiation data arrays from an
+    """Calculate specific humidity and incoming longwave radiation data arrays for a
     forecast hour dataset.
 
     :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
@@ -92,6 +130,92 @@ def _calc_qair_ilwr(ds_hr):
     ilwr = xarray.DataArray(ewc * sigma * ds_hr.TT ** 4)
 
     return qair, ilwr
+
+
+def _add_vars_metadata(ds_hr):
+    """Add metadata to variables that will be stored in final netCDF file.
+
+    :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
+    """
+    ds_hr.atmpres.attrs["level"] = "mean sea level"
+    ds_hr.atmpres.attrs["long_name"] = "Pressure Reduced to MSL"
+    ds_hr.atmpres.attrs["standard_name"] = "air_pressure_at_sea_level"
+    ds_hr.atmpres.attrs["units"] = "Pa"
+
+    # ds_hr.LHTFL_surface.attrs["level"] = "surface"
+    # ds_hr.LHTFL_surface.attrs["long_name"] = ""
+    # ds_hr.LHTFL_surface.attrs["standard_name"] = ""
+    # ds_hr.LHTFL_surface.attrs["units"] = ""
+    # ds_hr.LHTFL_surface.attrs["ioos_category"] = ""
+    # ds_hr.LHTFL_surface.attrs["comment"] = "how calculated"
+
+    ds_hr.percentcloud.attrs["long_name"] = "Cloud Fraction"
+    ds_hr.percentcloud.attrs["standard_name"] = "cloud_area_fraction"
+    ds_hr.percentcloud.attrs["units"] = "percent"
+
+    ds_hr.PRATE_surface.attrs["level"] = "surface"
+    ds_hr.PRATE_surface.attrs["long_name"] = "Precipitation Rate"
+    ds_hr.PRATE_surface.attrs["standard_name"] = "precipitation_flux"
+    ds_hr.PRATE_surface.attrs["units"] = "kg/m^2/s"
+
+    ds_hr.nav_lat.attrs["ioos_category"] = "location"
+
+    ds_hr.nav_lon.attrs["ioos_category"] = "location"
+
+    ds_hr.precip.attrs["level"] = "surface"
+    ds_hr.precip.attrs["long_name"] = "Total Precipitation"
+    ds_hr.precip.attrs["standard_name"] = "precipitation_flux"
+    ds_hr.precip.attrs["units"] = "kg/m^2"
+
+    ds_hr.qair.attrs["level"] = "2 m above surface"
+    ds_hr.qair.attrs["long_name"] = "Specific Humidity"
+    ds_hr.qair.attrs["standard_name"] = "specific_humidity_2maboveground"
+    ds_hr.qair.attrs["units"] = "kg/kg"
+    ## TODO: Better description of correclation???
+    ds_hr.qair.attrs[
+        "comment"
+    ] = "calculated from sea level air pressure and dewpoint temperature via a correlation"
+
+    # ds_hr.RH_2maboveground.attrs["level"] = "2 m above surface"
+    # ds_hr.RH_2maboveground.attrs["long_name"] = "Relative Humidity"
+    # ds_hr.RH_2maboveground.attrs["standard_name"] = "relative_humidity_2maboveground"
+    # ds_hr.RH_2maboveground.attrs["units"] = "percent"
+    # ds_hr.RH_2maboveground.attrs["comment"] = "how calculated"
+
+    ds_hr.solar.attrs["level"] = "surface"
+    ds_hr.solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
+    ds_hr.solar.attrs["standard_name"] = "net_downward_shortwave_flux_in_air"
+    ds_hr.solar.attrs["units"] = "W/m^2"
+
+    ds_hr.tair.attrs["level"] = "2 m above surface"
+    ds_hr.tair.attrs["long_name"] = "Air Temperature"
+    ds_hr.tair.attrs["standard_name"] = "air_temperature_2maboveground"
+    ds_hr.tair.attrs["units"] = "K"
+
+    ds_hr.therm_rad.attrs["level"] = "surface"
+    ds_hr.therm_rad.attrs["long_name"] = "Downward Long-Wave Radiation Flux"
+    ds_hr.therm_rad.attrs["standard_name"] = "net_downward_longwave_flux_in_air"
+    ds_hr.therm_rad.attrs["units"] = "W/m^2"
+    ds_hr.therm_rad.attrs["comment"] = (
+        "calculated from saturation water vapour pressure, air temperature, and cloud fraction "
+        "via Dilly-Unsworth correlation"
+    )
+
+    ds_hr.u_wind.attrs["level"] = "10 m above surface"
+    ds_hr.u_wind.attrs["long_name"] = "U-Component of Wind"
+    ds_hr.u_wind.attrs["standard_name"] = "x_wind"
+    ds_hr.u_wind.attrs["units"] = "m/s"
+    ds_hr.u_wind.attrs["ioos_category"] = "wind speed and direction"
+
+    ds_hr.v_wind.attrs["level"] = "10 m above surface"
+    ds_hr.v_wind.attrs["long_name"] = "V-Component of Wind"
+    ds_hr.v_wind.attrs["standard_name"] = "y_wind"
+    ds_hr.v_wind.attrs["units"] = "m/s"
+    ds_hr.v_wind.attrs["ioos_category"] = "wind speed and direction"
+
+    ds_hr.attrs[
+        "history"
+    ] += f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: Add data variables metadata"
 
 
 def _exec_bash_func(bash_cmd):
