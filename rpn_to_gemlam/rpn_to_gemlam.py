@@ -61,7 +61,7 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
                 logging.debug(
                     f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
                 )
-                qair, ilwr = _calc_qair_ilwr(ds_hr)
+                qair, ilwr, rh = _calc_qair_ilwr(ds_hr)
                 ds_hr_ext = xarray.Dataset(
                     data_vars={
                         "atmpres": ds_hr.PN,
@@ -70,9 +70,9 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
                         "PRATE_surface": ds_hr.RT,
                         "nav_lat": ds_hr.nav_lat,
                         "nav_lon": ds_hr.nav_lon,
-                        "precip": ds_hr.RT,  # maybe this should be PR???
+                        "precip": ds_hr.PN,
                         "qair": qair,
-                        # "RH_2maboveground":  **needs to be calculated**
+                        "RH_2maboveground": rh,
                         "solar": ds_hr.FB,
                         "tair": ds_hr.TT,
                         "therm_rad": ilwr,
@@ -84,7 +84,7 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
                 )
                 ds_hr_ext.attrs["history"] += (
                     f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
-                    f"Add specific humidity and incoming longwave radiation variables from "
+                    f"Add specific and relative humidity and incoming longwave radiation variables from "
                     f"correlations"
                 )
                 _add_vars_metadata(ds_hr_ext)
@@ -113,10 +113,14 @@ def _calc_qair_ilwr(ds_hr):
     """
     P = ds_hr.PN / 100  # convert to hectopascals
     # saturation water vapour at the dew point in the pure phase
+    # which within 0.5% is that of moist air
     ew = 6.112 * numpy.exp(17.62 * ds_hr.TD / (243.12 + ds_hr.TD))
     xvw = ew / (0.01 * ds_hr.PN)  # converting P to hectopascals
     r = 0.62198 * xvw / (1 - xvw)  # as at Td r = rw
     qair = xarray.DataArray(r / (1 + r))
+    # saturation water vapour at the current temperature in the pure phase
+    eT = 6.112 * numpy.exp(17.62 * ds_hr.TT / (243.12 + ds_hr.TT))
+    rh = 100 * (eT / ew)
 
     ew = ew / 1000.0  # Change vapour pressure to kPa
     w = 465 * ew / ds_hr.TT
@@ -129,7 +133,7 @@ def _calc_qair_ilwr(ds_hr):
     ewc = (1 - 0.84 * ds_hr.NT) * eclr + 0.84 * ds_hr.NT
     ilwr = xarray.DataArray(ewc * sigma * ds_hr.TT ** 4)
 
-    return qair, ilwr
+    return qair, ilwr, rh
 
 
 def _add_vars_metadata(ds_hr):
@@ -165,22 +169,23 @@ def _add_vars_metadata(ds_hr):
     ds_hr.precip.attrs["level"] = "surface"
     ds_hr.precip.attrs["long_name"] = "Total Precipitation"
     ds_hr.precip.attrs["standard_name"] = "precipitation_flux"
-    ds_hr.precip.attrs["units"] = "kg/m^2"
+    ds_hr.precip.attrs["units"] = "kg/m^2/hr"
 
     ds_hr.qair.attrs["level"] = "2 m above surface"
     ds_hr.qair.attrs["long_name"] = "Specific Humidity"
     ds_hr.qair.attrs["standard_name"] = "specific_humidity_2maboveground"
     ds_hr.qair.attrs["units"] = "kg/kg"
-    ## TODO: Better description of correclation???
     ds_hr.qair.attrs[
         "comment"
-    ] = "calculated from sea level air pressure and dewpoint temperature via a correlation"
+    ] = "calculated from sea level air pressure and dewpoint temperature via WMO 2012 ocean best practices"
 
-    # ds_hr.RH_2maboveground.attrs["level"] = "2 m above surface"
-    # ds_hr.RH_2maboveground.attrs["long_name"] = "Relative Humidity"
-    # ds_hr.RH_2maboveground.attrs["standard_name"] = "relative_humidity_2maboveground"
-    # ds_hr.RH_2maboveground.attrs["units"] = "percent"
-    # ds_hr.RH_2maboveground.attrs["comment"] = "how calculated"
+    ds_hr.RH_2maboveground.attrs["level"] = "2 m above surface"
+    ds_hr.RH_2maboveground.attrs["long_name"] = "Relative Humidity"
+    ds_hr.RH_2maboveground.attrs["standard_name"] = "relative_humidity_2maboveground"
+    ds_hr.RH_2maboveground.attrs["units"] = "percent"
+    ds_hr.RH_2maboveground.attrs[
+        "comment"
+    ] = "calculated from air temperature and dewpoint temperature via WMO 2012 ocean best practices"
 
     ds_hr.solar.attrs["level"] = "surface"
     ds_hr.solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
@@ -253,7 +258,7 @@ def _exec_bash_func(bash_cmd):
     type=click.Choice(("debug", "info", "warning", "error", "critical")),
     help="""
         Choose how much information you want to see about the progress of the process;
-        warning, error, and critical should be silent unless something bad goes wrong. 
+        warning, error, and critical should be silent unless something bad goes wrong.
     """,
 )
 def cli(netcdf_date, rpn_dir, dest_dir, verbosity):
