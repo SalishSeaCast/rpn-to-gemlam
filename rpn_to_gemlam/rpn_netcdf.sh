@@ -65,6 +65,11 @@ _rpn-netcdf-hour () {
 
    # Convert atmospheric pressure from millibars to Pascals
    /usr/bin/ncap2 -4 -O -s "PN=PN*100" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+
+   # Convert wind from knots to m/s
+   /usr/bin/ncap2 -4 -O -s "UU=UU*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+   /usr/bin/ncap2 -4 -O -s "VV=VV*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+
 }
 
 
