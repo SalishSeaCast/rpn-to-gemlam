@@ -111,7 +111,6 @@ def _calc_qair_ilwr(ds_hr):
     :returns: Specific humidity, Incoming longwave radiation data arrrays
     :rtype: 2-tuple of :py:class:`xarray.DataArray`
     """
-    P = ds_hr.PN / 100  # convert to hectopascals
     # saturation water vapour at the dew point in the pure phase
     # which within 0.5% is that of moist air
     ew = 6.112 * numpy.exp(17.62 * ds_hr.TD / (243.12 + ds_hr.TD))
@@ -119,8 +118,9 @@ def _calc_qair_ilwr(ds_hr):
     r = 0.62198 * xvw / (1 - xvw)  # as at Td r = rw
     qair = xarray.DataArray(r / (1 + r))
     # saturation water vapour at the current temperature in the pure phase
-    eT = 6.112 * numpy.exp(17.62 * ds_hr.TT / (243.12 + ds_hr.TT))
-    rh = 100 * (eT / ew)
+    TT = ds_hr.TT - 273.15  # change temperature back to Celcius
+    eT = 6.112 * numpy.exp(17.62 * TT / (243.12 + TT))
+    rh = 100 * (ew / eT)
 
     ew = ew / 1000.0  # Change vapour pressure to kPa
     w = 465 * ew / ds_hr.TT
