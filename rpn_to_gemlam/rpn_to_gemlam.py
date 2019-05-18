@@ -27,6 +27,8 @@ import click
 import numpy
 import xarray
 
+from salishsea_tools import viz_tools
+
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
@@ -136,8 +138,8 @@ def _calc_qair_ilwr(ds_hr):
 
     :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
 
-    :returns: Specific humidity, Incoming longwave radiation data arrrays
-    :rtype: 2-tuple of :py:class:`xarray.DataArray`
+    :returns: Specific humidity, relative humidity Incoming longwave radiation data arrrays
+    :rtype: 3-tuple of :py:class:`xarray.DataArray`
     """
     # saturation water vapour at the dew point in the pure phase
     # which within 0.5% is that of moist air
@@ -162,6 +164,24 @@ def _calc_qair_ilwr(ds_hr):
     ilwr = xarray.DataArray(ewc * sigma * ds_hr.TT ** 4)
 
     return qair, ilwr, rh
+
+
+def _rotate_winds(ds_hr):
+    """Rotate winds to true north, east
+
+    :param :py:class:`xarray.Dataset' ds_hr: Foreast hour dataset.
+
+    :returns: uwind, vwind data arrrays
+    :rtype: 2-tuple of :py:class:`xarray.DataArray`
+    """
+    lats = numpy.expand_dims(ds_hr.nat_lat, axis=0)
+    lons = numpy.expand_dims(ds_hr.nav_lon, axis=0)
+    coords = {"glamu": lons, "gphiu": lats}
+    u_out, v_out, a, b, c, cosA, A = viz_tools.rotate_vel2(
+        ds_hr.UU, ds_hr_VV, coords, origin="grid", coord_dict=True
+    )
+
+    return u_out, v_out
 
 
 def _add_vars_metadata(ds_hr):
