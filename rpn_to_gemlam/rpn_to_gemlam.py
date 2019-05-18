@@ -175,11 +175,11 @@ def _rotate_winds(ds_hr):
     :returns: uwind, vwind data arrrays
     :rtype: 2-tuple of :py:class:`xarray.DataArray`
     """
-    lats = numpy.expand_dims(ds_hr.nat_lat, axis=0)
+    lats = numpy.expand_dims(ds_hr.nav_lat, axis=0)
     lons = numpy.expand_dims(ds_hr.nav_lon, axis=0)
     coords = {"glamu": lons, "gphiu": lats}
     u_out, v_out, a, b, c, cosA, A = viz_tools.rotate_vel2(
-        ds_hr.UU, ds_hr_VV, coords, origin="grid", coord_dict=True
+        ds_hr.UU, ds_hr.VV, coords, origin="grid", coord_dict=True
     )
 
     return u_out, v_out
