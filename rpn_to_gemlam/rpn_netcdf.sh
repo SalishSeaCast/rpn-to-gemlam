@@ -44,8 +44,8 @@ _rpn-netcdf-hour () {
      -nomv ${var} -ip1 12000
   done
 
-  # # delete GEMLAM RPN forecast hour file
-   /bin/rm -f ${tmp_dir}/${day}06_${hr}
+  # delete GEMLAM RPN forecast hour file
+  /bin/rm -f ${tmp_dir}/${day}06_${hr}
 
   # append single variable files into a single file for the hour
   for var in FB NT PN PR RN RT TD TT UU VV
@@ -53,23 +53,22 @@ _rpn-netcdf-hour () {
     /usr/bin/ncks -4 -h -A ${tmp_dir}/${day}06_${var}_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
   done
 
-   # delete single variable files
-   /bin/rm -f ${tmp_dir}/${day}06_*_${hr}.nc
+  # delete single variable files
+  /bin/rm -f ${tmp_dir}/${day}06_*_${hr}.nc
 
-   # Reduce grid size to what is needed for SalishSeaCast
-   /usr/bin/ncea -4 -O -d y,20,285 -d x,110,365 \
-     ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  # Reduce grid size to what is needed for SalishSeaCast
+  /usr/bin/ncea -4 -O -d y,20,285 -d x,110,365 \
+    ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 
-   # Convert air temperature from Celcuis to Kelvin
-   /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  # Convert air temperature from Celcuis to Kelvin
+  /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 
-   # Convert atmospheric pressure from millibars to Pascals
-   /usr/bin/ncap2 -4 -O -s "PN=PN*100" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  # Convert atmospheric pressure from millibars to Pascals
+  /usr/bin/ncap2 -4 -O -s "PN=PN*100" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 
-   # Convert wind from knots to m/s
-   /usr/bin/ncap2 -4 -O -s "UU=UU*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
-   /usr/bin/ncap2 -4 -O -s "VV=VV*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
-
+  # Convert wind from knots to m/s
+  /usr/bin/ncap2 -4 -O -s "UU=UU*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "VV=VV*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 }
 
 
