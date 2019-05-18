@@ -95,6 +95,7 @@ def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
             f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
         )
         qair, ilwr, rh = _calc_qair_ilwr(ds_hr)
+        u_out, v_out = _rotate_winds(ds_hr)
         ds_hr_ext = xarray.Dataset(
             data_vars={
                 "atmpres": ds_hr.PN,
@@ -109,8 +110,8 @@ def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
                 "solar": ds_hr.FB,
                 "tair": ds_hr.TT,
                 "therm_rad": ilwr,
-                "u_wind": ds_hr.UU,
-                "v_wind": ds_hr.VV,
+                "u_wind": u_out,
+                "v_wind": v_out,
             },
             coords=ds_hr.coords,
             attrs=ds_hr.attrs,
