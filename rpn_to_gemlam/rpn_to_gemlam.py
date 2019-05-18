@@ -122,7 +122,7 @@ def _calc_qair_ilwr(ds_hr):
     eT = 6.112 * numpy.exp(17.62 * TT / (243.12 + TT))
     rh = 100 * (ew / eT)
 
-    ew = ew / 1000.0  # Change vapour pressure to kPa
+    ew = ew / 10.0  # Change vapour pressure to from hecto pascal to kPa
     w = 465 * ew / ds_hr.TT
     Lclr = (
         59.38 + 113.7 * (ds_hr.TT / 273.16) ** 6 + 96.96 * numpy.sqrt(w / 2.5)
