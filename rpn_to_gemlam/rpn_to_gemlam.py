@@ -51,55 +51,83 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
         f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
     )
     _exec_bash_func(bash_cmd)
-    for hr in range(24):
-        hr_ds_path = tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
-        hr_ds_ext_path = (
-            tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}_ext.nc"
+    nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
+    for hr in range(18, 25):
+        hr_ds_path = (
+            tmp_dir / f"{netcdf_date.shift(days=-1).format('YYYYMMDD')}06_{(hr):03d}.nc"
         )
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr - 18):03d}.nc"
         try:
-            with xarray.open_dataset(hr_ds_path) as ds_hr:
-                logging.debug(
-                    f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
-                )
-                qair, ilwr, rh = _calc_qair_ilwr(ds_hr)
-                ds_hr_ext = xarray.Dataset(
-                    data_vars={
-                        "atmpres": ds_hr.PN,
-                        # "LHTFL_surface":   ** needs to be calculated**
-                        "percentcloud": ds_hr.NT,
-                        "PRATE_surface": ds_hr.RT,
-                        "nav_lat": ds_hr.nav_lat,
-                        "nav_lon": ds_hr.nav_lon,
-                        "precip": ds_hr.PN,
-                        "qair": qair,
-                        "RH_2maboveground": rh,
-                        "solar": ds_hr.FB,
-                        "tair": ds_hr.TT,
-                        "therm_rad": ilwr,
-                        "u_wind": ds_hr.UU,
-                        "v_wind": ds_hr.VV,
-                    },
-                    coords=ds_hr.coords,
-                    attrs=ds_hr.attrs,
-                )
-                ds_hr_ext.attrs["history"] += (
-                    f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
-                    f"Add specific and relative humidity and incoming longwave radiation variables from "
-                    f"correlations"
-                )
-                _add_vars_metadata(ds_hr_ext)
-                encoding = {
-                    "time_counter": {
-                        "dtype": "float",
-                        "units": "seconds since 1950-01-01 00:00:00",
-                    }
-                }
-                ds_hr_ext.to_netcdf(
-                    hr_ds_ext_path, encoding=encoding, unlimited_dims=("time_counter",)
-                )
+            _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path)
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
+    for hr in range(18):
+        hr_ds_path = tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr + 1 + 6):03d}.nc"
+        try:
+            _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path)
+        except FileNotFoundError:
+            # Missing forecast hour; we'll fill it in later
+            continue
+
+
+def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
+    """Write forecast hour file with file name and variable names expected by NEMO and FVCOM.
+
+    File includes variables from GEMLAM RPN as well as calculated variables.
+    Calculated variables are:
+
+    * specific humidity 2m above surface
+    * relative humidity 2m above surface
+    * incoming longwave radiation at surface
+    * TODO: latent heat flux at surface
+
+    :param :py:class:`pathlib.Path` hr_ds_path: File path of forecast hour from RPN file.
+
+    :param :py:class:`pathlib.Path` nemo_hr_ds_path: File path of forecast hour file with NEMO
+                                                     variable names and file name.
+    """
+    with xarray.open_dataset(hr_ds_path) as ds_hr:
+        logging.debug(
+            f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
+        )
+        qair, ilwr, rh = _calc_qair_ilwr(ds_hr)
+        ds_hr_ext = xarray.Dataset(
+            data_vars={
+                "atmpres": ds_hr.PN,
+                # "LHTFL_surface":   ** needs to be calculated**
+                "percentcloud": ds_hr.NT,
+                "PRATE_surface": ds_hr.RT,
+                "nav_lat": ds_hr.nav_lat,
+                "nav_lon": ds_hr.nav_lon,
+                "precip": ds_hr.PN,
+                "qair": qair,
+                "RH_2maboveground": rh,
+                "solar": ds_hr.FB,
+                "tair": ds_hr.TT,
+                "therm_rad": ilwr,
+                "u_wind": ds_hr.UU,
+                "v_wind": ds_hr.VV,
+            },
+            coords=ds_hr.coords,
+            attrs=ds_hr.attrs,
+        )
+        ds_hr_ext.attrs["history"] += (
+            f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
+            f"Add specific and relative humidity and incoming longwave radiation variables from "
+            f"correlations"
+        )
+        _add_vars_metadata(ds_hr_ext)
+        encoding = {
+            "time_counter": {
+                "dtype": "float",
+                "units": "seconds since 1950-01-01 00:00:00",
+            }
+        }
+        ds_hr_ext.to_netcdf(
+            nemo_hr_ds_path, encoding=encoding, unlimited_dims=("time_counter",)
+        )
 
 
 def _calc_qair_ilwr(ds_hr):
