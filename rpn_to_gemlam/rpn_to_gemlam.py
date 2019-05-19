@@ -49,12 +49,29 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
     :type dest_dir: :py:class:`pathlib.Path`
     """
+    ##TODO: Change to a tmp dir context manager when we don't care about looking at interim
+    ##      file any more
     tmp_dir = Path("/data/dlatorne/tmp-rpn-to-gem-lam")
     tmp_dir.mkdir(exist_ok=True)
 
-    for netcdf_date in arrow.Arrow.range(
+    _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, tmp_dir)
+    hrs_range = arrow.Arrow.range(
+        "hour", netcdf_start_date.shift(days=-1), netcdf_end_date.shift(hours=+23)
+    )
+    for netcdf_hr in hrs_range:
+        nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
+        if not nemo_hr_ds_path.exists():
+            raise FileNotFoundError(f"missing {nemo_hr_ds_path}")
+
+
+def _rpn_hrs_to_nemo_hrs(
+    netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, tmp_dir
+):
+    days_range = arrow.Arrow.range(
         "day", netcdf_start_date.shift(days=-1), netcdf_end_date
-    ):
+    )
+    for netcdf_date in days_range:
         bash_cmd = f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
         _exec_bash_func(bash_cmd)
         nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
