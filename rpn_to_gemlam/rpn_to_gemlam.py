@@ -221,7 +221,7 @@ def _add_vars_metadata(nemo_hr):
     nemo_hr.precip.attrs["level"] = "surface"
     nemo_hr.precip.attrs["long_name"] = "Total Precipitation"
     nemo_hr.precip.attrs["standard_name"] = "precipitation_flux"
-    nemo_hr.precip.attrs["units"] = "kg/m^2/hr"
+    nemo_hr.precip.attrs["units"] = "kg/m^2/s"
 
     nemo_hr.qair.attrs["level"] = "2 m above surface"
     nemo_hr.qair.attrs["long_name"] = "Specific Humidity"
