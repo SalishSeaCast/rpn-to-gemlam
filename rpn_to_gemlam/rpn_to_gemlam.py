@@ -175,8 +175,8 @@ def _rotate_winds(ds_hr):
     :returns: uwind, vwind data arrrays
     :rtype: 2-tuple of :py:class:`xarray.DataArray`
     """
-    coords = {"glamu": ds_hr.nav_lon, "gphiu": ds_hr.nav_lat}
-    u_out, v_out = viz_tools.rotate_bybearing(
+    coords = {"lon": ds_hr.nav_lon, "lat": ds_hr.nav_lat}
+    u_out, v_out = viz_tools.rotate_vel_bybearing(
         ds_hr.UU, ds_hr.VV, coords, origin="grid"
     )
 
