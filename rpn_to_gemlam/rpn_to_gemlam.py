@@ -55,26 +55,28 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
     _exec_bash_func(bash_cmd)
     nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
     for hr in range(18, 25):
-        hr_ds_path = (
+        rpn_hr_ds_path = (
             tmp_dir / f"{netcdf_date.shift(days=-1).format('YYYYMMDD')}06_{(hr):03d}.nc"
         )
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr - 18):03d}.nc"
         try:
-            _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path)
+            _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
     for hr in range(18):
-        hr_ds_path = tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+        rpn_hr_ds_path = (
+            tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+        )
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr + 1 + 6):03d}.nc"
         try:
-            _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path)
+            _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
 
 
-def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
+def _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path):
     """Write forecast hour file with file name and variable names expected by NEMO and FVCOM.
 
     File includes variables from GEMLAM RPN as well as calculated variables.
@@ -85,188 +87,188 @@ def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
     * incoming longwave radiation at surface
     * TODO: latent heat flux at surface
 
-    :param :py:class:`pathlib.Path` hr_ds_path: File path of forecast hour from RPN file.
+    :param :py:class:`pathlib.Path` rpn_hr_ds_path: File path of forecast hour from RPN file.
 
     :param :py:class:`pathlib.Path` nemo_hr_ds_path: File path of forecast hour file with NEMO
                                                      variable names and file name.
     """
-    with xarray.open_dataset(hr_ds_path) as ds_hr:
+    with xarray.open_dataset(rpn_hr_ds_path) as rpn_hr:
         logging.debug(
-            f"calculating specific humidity & incoming longwave radiation from {hr_ds_path}"
+            f"calculating specific humidity & incoming longwave radiation from {rpn_hr_ds_path}"
         )
-        qair, ilwr, rh = _calc_qair_ilwr(ds_hr)
-        u_out, v_out = _rotate_winds(ds_hr)
-        ds_hr_ext = xarray.Dataset(
+        qair, ilwr, rh = _calc_qair_ilwr(rpn_hr)
+        u_out, v_out = _rotate_winds(rpn_hr)
+        nemo_hr = xarray.Dataset(
             data_vars={
                 # [:, 0] drops z dimension that NEMO will not tolerate
-                "atmpres": ds_hr.PN[:, 0],
+                "atmpres": rpn_hr.PN[:, 0],
                 # "LHTFL_surface":   ** needs to be calculated**
-                "percentcloud": ds_hr.NT[:, 0],
-                "PRATE_surface": ds_hr.RT[:, 0],
-                "nav_lat": ds_hr.nav_lat,
-                "nav_lon": ds_hr.nav_lon,
-                "precip": ds_hr.PR[:, 0],
+                "percentcloud": rpn_hr.NT[:, 0],
+                "PRATE_surface": rpn_hr.RT[:, 0],
+                "nav_lat": rpn_hr.nav_lat,
+                "nav_lon": rpn_hr.nav_lon,
+                "precip": rpn_hr.PR[:, 0],
                 "qair": qair[:, 0],
                 "RH_2maboveground": rh[:, 0],
-                "solar": ds_hr.FB[:, 0],
-                "tair": ds_hr.TT[:, 0],
+                "solar": rpn_hr.FB[:, 0],
+                "tair": rpn_hr.TT[:, 0],
                 "therm_rad": ilwr[:, 0],
                 "u_wind": u_out[:, 0],
                 "v_wind": v_out[:, 0],
             },
-            coords=ds_hr.coords,
-            attrs=ds_hr.attrs,
+            coords=rpn_hr.coords,
+            attrs=rpn_hr.attrs,
         )
-        ds_hr_ext.attrs["history"] += (
+        nemo_hr.attrs["history"] += (
             f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
             f"Add specific and relative humidity and incoming longwave radiation variables from "
             f"correlations"
         )
-        _add_vars_metadata(ds_hr_ext)
+        _add_vars_metadata(nemo_hr)
         encoding = {
             "time_counter": {
                 "dtype": "float",
                 "units": "seconds since 1950-01-01 00:00:00",
             }
         }
-        ds_hr_ext.to_netcdf(
+        nemo_hr.to_netcdf(
             nemo_hr_ds_path, encoding=encoding, unlimited_dims=("time_counter",)
         )
 
 
-def _calc_qair_ilwr(ds_hr):
+def _calc_qair_ilwr(rpn_hr):
     """Calculate specific humidity and incoming longwave radiation data arrays for a
     forecast hour dataset.
 
-    :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
+    :param :py:class:`xarray.Dataset` rpn_hr: Forecast hour dataset.
 
     :returns: Specific humidity, relative humidity Incoming longwave radiation data arrrays
     :rtype: 3-tuple of :py:class:`xarray.DataArray`
     """
     # saturation water vapour at the dew point in the pure phase
     # which within 0.5% is that of moist air
-    ew = 6.112 * numpy.exp(17.62 * ds_hr.TD / (243.12 + ds_hr.TD))
-    xvw = ew / (0.01 * ds_hr.PN)  # converting P to hectopascals
+    ew = 6.112 * numpy.exp(17.62 * rpn_hr.TD / (243.12 + rpn_hr.TD))
+    xvw = ew / (0.01 * rpn_hr.PN)  # converting P to hectopascals
     r = 0.62198 * xvw / (1 - xvw)  # as at Td r = rw
     qair = xarray.DataArray(r / (1 + r))
     # saturation water vapour at the current temperature in the pure phase
-    TT = ds_hr.TT - 273.15  # change temperature back to Celcius
+    TT = rpn_hr.TT - 273.15  # change temperature back to Celcius
     eT = 6.112 * numpy.exp(17.62 * TT / (243.12 + TT))
     rh = 100 * (ew / eT)
 
     ew = ew / 10.0  # Change vapour pressure to from hecto pascal to kPa
-    w = 465 * ew / ds_hr.TT
+    w = 465 * ew / rpn_hr.TT
     Lclr = (
-        59.38 + 113.7 * (ds_hr.TT / 273.16) ** 6 + 96.96 * numpy.sqrt(w / 2.5)
+        59.38 + 113.7 * (rpn_hr.TT / 273.16) ** 6 + 96.96 * numpy.sqrt(w / 2.5)
     )  # Dilley
     # Unsworth
     sigma = 5.6697e-8
-    eclr = Lclr / (sigma * ds_hr.TT ** 4)
-    ewc = (1 - 0.84 * ds_hr.NT) * eclr + 0.84 * ds_hr.NT
-    ilwr = xarray.DataArray(ewc * sigma * ds_hr.TT ** 4)
+    eclr = Lclr / (sigma * rpn_hr.TT ** 4)
+    ewc = (1 - 0.84 * rpn_hr.NT) * eclr + 0.84 * rpn_hr.NT
+    ilwr = xarray.DataArray(ewc * sigma * rpn_hr.TT ** 4)
 
     return qair, ilwr, rh
 
 
-def _rotate_winds(ds_hr):
+def _rotate_winds(rpn_hr):
     """Rotate winds to true north, east
 
-    :param :py:class:`xarray.Dataset' ds_hr: Foreast hour dataset.
+    :param :py:class:`xarray.Dataset' rpn_hr: Foreast hour dataset.
 
     :returns: uwind, vwind data arrrays
     :rtype: 2-tuple of :py:class:`xarray.DataArray`
     """
-    coords = {"lon": ds_hr.nav_lon, "lat": ds_hr.nav_lat}
+    coords = {"lon": rpn_hr.nav_lon, "lat": rpn_hr.nav_lat}
     u_out, v_out = viz_tools.rotate_vel_bybearing(
-        ds_hr.UU, ds_hr.VV, coords, origin="grid"
+        rpn_hr.UU, rpn_hr.VV, coords, origin="grid"
     )
 
     return u_out, v_out
 
 
-def _add_vars_metadata(ds_hr):
+def _add_vars_metadata(nemo_hr):
     """Add metadata to variables that will be stored in final netCDF file.
 
-    :param :py:class:`xarray.Dataset` ds_hr: Forecast hour dataset.
+    :param :py:class:`xarray.Dataset` nemo_hr: Forecast hour dataset.
     """
-    ds_hr.atmpres.attrs["level"] = "mean sea level"
-    ds_hr.atmpres.attrs["long_name"] = "Pressure Reduced to MSL"
-    ds_hr.atmpres.attrs["standard_name"] = "air_pressure_at_sea_level"
-    ds_hr.atmpres.attrs["units"] = "Pa"
+    nemo_hr.atmpres.attrs["level"] = "mean sea level"
+    nemo_hr.atmpres.attrs["long_name"] = "Pressure Reduced to MSL"
+    nemo_hr.atmpres.attrs["standard_name"] = "air_pressure_at_sea_level"
+    nemo_hr.atmpres.attrs["units"] = "Pa"
 
-    # ds_hr.LHTFL_surface.attrs["level"] = "surface"
-    # ds_hr.LHTFL_surface.attrs["long_name"] = ""
-    # ds_hr.LHTFL_surface.attrs["standard_name"] = ""
-    # ds_hr.LHTFL_surface.attrs["units"] = ""
-    # ds_hr.LHTFL_surface.attrs["ioos_category"] = ""
-    # ds_hr.LHTFL_surface.attrs["comment"] = "how calculated"
+    # nemo_hr.LHTFL_surface.attrs["level"] = "surface"
+    # nemo_hr.LHTFL_surface.attrs["long_name"] = ""
+    # nemo_hr.LHTFL_surface.attrs["standard_name"] = ""
+    # nemo_hr.LHTFL_surface.attrs["units"] = ""
+    # nemo_hr.LHTFL_surface.attrs["ioos_category"] = ""
+    # nemo_hr.LHTFL_surface.attrs["comment"] = "how calculated"
 
-    ds_hr.percentcloud.attrs["long_name"] = "Cloud Fraction"
-    ds_hr.percentcloud.attrs["standard_name"] = "cloud_area_fraction"
-    ds_hr.percentcloud.attrs["units"] = "percent"
+    nemo_hr.percentcloud.attrs["long_name"] = "Cloud Fraction"
+    nemo_hr.percentcloud.attrs["standard_name"] = "cloud_area_fraction"
+    nemo_hr.percentcloud.attrs["units"] = "percent"
 
-    ds_hr.PRATE_surface.attrs["level"] = "surface"
-    ds_hr.PRATE_surface.attrs["long_name"] = "Precipitation Rate"
-    ds_hr.PRATE_surface.attrs["standard_name"] = "precipitation_flux"
-    ds_hr.PRATE_surface.attrs["units"] = "kg/m^2/s"
+    nemo_hr.PRATE_surface.attrs["level"] = "surface"
+    nemo_hr.PRATE_surface.attrs["long_name"] = "Precipitation Rate"
+    nemo_hr.PRATE_surface.attrs["standard_name"] = "precipitation_flux"
+    nemo_hr.PRATE_surface.attrs["units"] = "kg/m^2/s"
 
-    ds_hr.nav_lat.attrs["ioos_category"] = "location"
+    nemo_hr.nav_lat.attrs["ioos_category"] = "location"
 
-    ds_hr.nav_lon.attrs["ioos_category"] = "location"
+    nemo_hr.nav_lon.attrs["ioos_category"] = "location"
 
-    ds_hr.precip.attrs["level"] = "surface"
-    ds_hr.precip.attrs["long_name"] = "Total Precipitation"
-    ds_hr.precip.attrs["standard_name"] = "precipitation_flux"
-    ds_hr.precip.attrs["units"] = "kg/m^2/hr"
+    nemo_hr.precip.attrs["level"] = "surface"
+    nemo_hr.precip.attrs["long_name"] = "Total Precipitation"
+    nemo_hr.precip.attrs["standard_name"] = "precipitation_flux"
+    nemo_hr.precip.attrs["units"] = "kg/m^2/hr"
 
-    ds_hr.qair.attrs["level"] = "2 m above surface"
-    ds_hr.qair.attrs["long_name"] = "Specific Humidity"
-    ds_hr.qair.attrs["standard_name"] = "specific_humidity_2maboveground"
-    ds_hr.qair.attrs["units"] = "kg/kg"
-    ds_hr.qair.attrs[
+    nemo_hr.qair.attrs["level"] = "2 m above surface"
+    nemo_hr.qair.attrs["long_name"] = "Specific Humidity"
+    nemo_hr.qair.attrs["standard_name"] = "specific_humidity_2maboveground"
+    nemo_hr.qair.attrs["units"] = "kg/kg"
+    nemo_hr.qair.attrs[
         "comment"
     ] = "calculated from sea level air pressure and dewpoint temperature via WMO 2012 ocean best practices"
 
-    ds_hr.RH_2maboveground.attrs["level"] = "2 m above surface"
-    ds_hr.RH_2maboveground.attrs["long_name"] = "Relative Humidity"
-    ds_hr.RH_2maboveground.attrs["standard_name"] = "relative_humidity_2maboveground"
-    ds_hr.RH_2maboveground.attrs["units"] = "percent"
-    ds_hr.RH_2maboveground.attrs[
+    nemo_hr.RH_2maboveground.attrs["level"] = "2 m above surface"
+    nemo_hr.RH_2maboveground.attrs["long_name"] = "Relative Humidity"
+    nemo_hr.RH_2maboveground.attrs["standard_name"] = "relative_humidity_2maboveground"
+    nemo_hr.RH_2maboveground.attrs["units"] = "percent"
+    nemo_hr.RH_2maboveground.attrs[
         "comment"
     ] = "calculated from air temperature and dewpoint temperature via WMO 2012 ocean best practices"
 
-    ds_hr.solar.attrs["level"] = "surface"
-    ds_hr.solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
-    ds_hr.solar.attrs["standard_name"] = "net_downward_shortwave_flux_in_air"
-    ds_hr.solar.attrs["units"] = "W/m^2"
+    nemo_hr.solar.attrs["level"] = "surface"
+    nemo_hr.solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
+    nemo_hr.solar.attrs["standard_name"] = "net_downward_shortwave_flux_in_air"
+    nemo_hr.solar.attrs["units"] = "W/m^2"
 
-    ds_hr.tair.attrs["level"] = "2 m above surface"
-    ds_hr.tair.attrs["long_name"] = "Air Temperature"
-    ds_hr.tair.attrs["standard_name"] = "air_temperature_2maboveground"
-    ds_hr.tair.attrs["units"] = "K"
+    nemo_hr.tair.attrs["level"] = "2 m above surface"
+    nemo_hr.tair.attrs["long_name"] = "Air Temperature"
+    nemo_hr.tair.attrs["standard_name"] = "air_temperature_2maboveground"
+    nemo_hr.tair.attrs["units"] = "K"
 
-    ds_hr.therm_rad.attrs["level"] = "surface"
-    ds_hr.therm_rad.attrs["long_name"] = "Downward Long-Wave Radiation Flux"
-    ds_hr.therm_rad.attrs["standard_name"] = "net_downward_longwave_flux_in_air"
-    ds_hr.therm_rad.attrs["units"] = "W/m^2"
-    ds_hr.therm_rad.attrs["comment"] = (
+    nemo_hr.therm_rad.attrs["level"] = "surface"
+    nemo_hr.therm_rad.attrs["long_name"] = "Downward Long-Wave Radiation Flux"
+    nemo_hr.therm_rad.attrs["standard_name"] = "net_downward_longwave_flux_in_air"
+    nemo_hr.therm_rad.attrs["units"] = "W/m^2"
+    nemo_hr.therm_rad.attrs["comment"] = (
         "calculated from saturation water vapour pressure, air temperature, and cloud fraction "
         "via Dilly-Unsworth correlation"
     )
 
-    ds_hr.u_wind.attrs["level"] = "10 m above surface"
-    ds_hr.u_wind.attrs["long_name"] = "U-Component of Wind"
-    ds_hr.u_wind.attrs["standard_name"] = "x_wind"
-    ds_hr.u_wind.attrs["units"] = "m/s"
-    ds_hr.u_wind.attrs["ioos_category"] = "wind speed and direction"
+    nemo_hr.u_wind.attrs["level"] = "10 m above surface"
+    nemo_hr.u_wind.attrs["long_name"] = "U-Component of Wind"
+    nemo_hr.u_wind.attrs["standard_name"] = "x_wind"
+    nemo_hr.u_wind.attrs["units"] = "m/s"
+    nemo_hr.u_wind.attrs["ioos_category"] = "wind speed and direction"
 
-    ds_hr.v_wind.attrs["level"] = "10 m above surface"
-    ds_hr.v_wind.attrs["long_name"] = "V-Component of Wind"
-    ds_hr.v_wind.attrs["standard_name"] = "y_wind"
-    ds_hr.v_wind.attrs["units"] = "m/s"
-    ds_hr.v_wind.attrs["ioos_category"] = "wind speed and direction"
+    nemo_hr.v_wind.attrs["level"] = "10 m above surface"
+    nemo_hr.v_wind.attrs["long_name"] = "V-Component of Wind"
+    nemo_hr.v_wind.attrs["standard_name"] = "y_wind"
+    nemo_hr.v_wind.attrs["units"] = "m/s"
+    nemo_hr.v_wind.attrs["ioos_category"] = "wind speed and direction"
 
-    ds_hr.attrs[
+    nemo_hr.attrs[
         "history"
     ] += f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: Add data variables metadata"
 
