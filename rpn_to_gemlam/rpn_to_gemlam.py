@@ -61,6 +61,7 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr - 18):03d}.nc"
         try:
             _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
+            rpn_hr_ds_path.unlink()
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
@@ -71,6 +72,7 @@ def rpn_to_gemlam(netcdf_date, rpn_dir, dest_dir):
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr + 1 + 6):03d}.nc"
         try:
             _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
+            rpn_hr_ds_path.unlink()
         except FileNotFoundError:
             # Missing forecast hour; we'll fill it in later
             continue
