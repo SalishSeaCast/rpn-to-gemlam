@@ -105,7 +105,7 @@ def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
                 "PRATE_surface": ds_hr.RT[:, 0],
                 "nav_lat": ds_hr.nav_lat,
                 "nav_lon": ds_hr.nav_lon,
-                "precip": ds_hr.PN[:, 0],
+                "precip": ds_hr.PR[:, 0],
                 "qair": qair[:, 0],
                 "RH_2maboveground": rh[:, 0],
                 "solar": ds_hr.FB[:, 0],
