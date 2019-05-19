@@ -98,20 +98,21 @@ def _write_nemo_hr_file(hr_ds_path, nemo_hr_ds_path):
         u_out, v_out = _rotate_winds(ds_hr)
         ds_hr_ext = xarray.Dataset(
             data_vars={
-                "atmpres": ds_hr.PN,
+                # [:, 0] drops z dimension that NEMO will not tolerate
+                "atmpres": ds_hr.PN[:, 0],
                 # "LHTFL_surface":   ** needs to be calculated**
-                "percentcloud": ds_hr.NT,
-                "PRATE_surface": ds_hr.RT,
+                "percentcloud": ds_hr.NT[:, 0],
+                "PRATE_surface": ds_hr.RT[:, 0],
                 "nav_lat": ds_hr.nav_lat,
                 "nav_lon": ds_hr.nav_lon,
-                "precip": ds_hr.PN,
-                "qair": qair,
-                "RH_2maboveground": rh,
-                "solar": ds_hr.FB,
-                "tair": ds_hr.TT,
-                "therm_rad": ilwr,
-                "u_wind": u_out,
-                "v_wind": v_out,
+                "precip": ds_hr.PN[:, 0],
+                "qair": qair[:, 0],
+                "RH_2maboveground": rh[:, 0],
+                "solar": ds_hr.FB[:, 0],
+                "tair": ds_hr.TT[:, 0],
+                "therm_rad": ilwr[:, 0],
+                "u_wind": u_out[:, 0],
+                "v_wind": v_out[:, 0],
             },
             coords=ds_hr.coords,
             attrs=ds_hr.attrs,
