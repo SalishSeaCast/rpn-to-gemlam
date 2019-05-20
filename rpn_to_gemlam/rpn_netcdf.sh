@@ -82,7 +82,6 @@ rpn-netcdf () {
   netcdf_date=$1
   rpn_dir=$2
   tmp_dir=$3
-  dest_dir=$4
 
   daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
   for hr in {018..024}
@@ -104,4 +103,37 @@ rpn-netcdf () {
 
   # # delete hourly files
   # /bin/rm -f ${tmp_dir}/${daym1}06_0*.nc ${tmp_dir}/${day}06_0*.nc
+}
+
+
+avg-diff-hrs () {
+  prev_hr_file=$1
+  hr_file=$2
+  dest_file=$3
+
+  # average instantaneous solar radiation from 2 hours to get value that should be
+  # reasonably consistent with the hour-averaged values we get from HRDPS GRIBs
+  /usr/bin/ncra -4 -O -o /tmp/solar.nc -v solar ${prev_hr_file} ${hr_file}
+  /usr/bin/ncks -4 -A -v solar /tmp/solar.nc ${dest_file}
+  /bin/rm -f /tmp/solar.nc
+
+  # calculate precipitation sums over domain to use as check for whether or not
+  # we are at the first hour of a day's precipitation accumulation
+  /usr/bin/ncwa -4 -O -o /tmp/prev_precip_sum.nc -v precip ${prev_hr_file}
+  /usr/bin/ncwa -4 -O -o /tmp/hr_precip_sum.nc -v precip ${hr_file}
+
+  # calculate difference of precipitation sums
+  prev_precip_sum=$(/usr/bin/ncdump -v precip /tmp/prev_precip_sum.nc | grep 'precip =' | cut -c 11-)
+  prev_precip_sum=${prev_precip_sum::-2}
+  hr_precip_sum=$(/usr/bin/ncdump -v precip /tmp/hr_precip_sum.nc | grep 'precip =' | cut -c 11-)
+  hr_precip_sum=${hr_precip_sum::-2}
+  accumulating=$(echo "${hr_precip_sum}>${prev_precip_sum}" | bc)
+  /bin/rm -f /tmp/prev_precip_sum.nc /tmp/hr_precip_sum.nc
+
+  if [ ${accumulating} -eq 1 ]
+  then
+    /usr/bin/ncdiff -4 -O -o /tmp/precip.nc -v precip ${hr_file} ${prev_hr_file}
+    /usr/bin/ncks -4 -A -v precip /tmp/precip.nc ${dest_file}
+    /bin/rm -f /tmp/precip.nc
+  fi
 }
