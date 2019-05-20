@@ -57,24 +57,7 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
 
     _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir)
     _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir)
-
-    hrs_range = arrow.Arrow.range(
-        "hour", netcdf_start_date, netcdf_end_date.shift(hours=+23)
-    )
-    for netcdf_hr in hrs_range:
-        prev_hr = netcdf_hr.shift(hours=-1)
-        prev_nemo_date = f"y{prev_hr.year}m{prev_hr.month:02d}d{prev_hr.day:02d}"
-        prev_nemo_hr_ds_path = (
-            tmp_dir / f"gemlam_{prev_nemo_date}_{netcdf_hr.hour:03d}.nc"
-        )
-        nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
-        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
-        nemo_hr_ds_dest = dest_dir / nemo_hr_ds_path.name
-        shutil.copy2(nemo_hr_ds_path, nemo_hr_ds_dest)
-        bash_cmd = (
-            f"avg-diff-hrs {prev_nemo_hr_ds_path} {nemo_hr_ds_path} {nemo_hr_ds_dest}"
-        )
-        _exec_bash_func(bash_cmd)
+    _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, tmp_dir)
 
 
 def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
@@ -144,6 +127,43 @@ def _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir):
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
         if not nemo_hr_ds_path.exists():
             raise FileNotFoundError(f"missing {nemo_hr_ds_path}")
+
+
+def _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, tmp_dir):
+    """Calculate solar radiation and precipitation flux for each forecast hour.
+
+    Solar radiation is average of instantaneous values from RPN from hour and preceding hour.
+    Precipitation flux is calculated by hour to hour differences from RPN accumulated precipitation.
+
+    :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
+    :type netcdf_start_date: :py:class:`arrow.Arrow`
+
+    :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
+    :type netcdf_end_date: :py:class:`arrow.Arrow`
+
+    :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
+    :type dest_dir: :py:class:`pathlib.Path`
+
+    :param tmp_dir: Temporary working directory for files created during processing.
+    :type tmp_dir: :py:class:`pathlib.Path`
+    """
+    hrs_range = arrow.Arrow.range(
+        "hour", netcdf_start_date, netcdf_end_date.shift(hours=+23)
+    )
+    for netcdf_hr in hrs_range:
+        prev_hr = netcdf_hr.shift(hours=-1)
+        prev_nemo_date = f"y{prev_hr.year}m{prev_hr.month:02d}d{prev_hr.day:02d}"
+        prev_nemo_hr_ds_path = (
+            tmp_dir / f"gemlam_{prev_nemo_date}_{prev_hr.hour:03d}.nc"
+        )
+        nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
+        nemo_hr_ds_dest = dest_dir / nemo_hr_ds_path.name
+        shutil.copy2(nemo_hr_ds_path, nemo_hr_ds_dest)
+        bash_cmd = (
+            f"avg-diff-hrs {prev_nemo_hr_ds_path} {nemo_hr_ds_path} {nemo_hr_ds_dest}"
+        )
+        _exec_bash_func(bash_cmd)
 
 
 def _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path):
