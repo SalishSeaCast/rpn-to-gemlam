@@ -6,6 +6,7 @@
 #
 #   $ conda env create -f rpn-to-gemlam/environment-dev.yaml
 #   $ conda activate rpn-to-gemlam
+#   (rpn-to-gemlam)$ pip install --editable ../tools/SalishSeaTools
 #   (rpn-to-gemlam)$ pip install --editable rpn-to-gemlam
 #
 # The environment will include all of the tools used to develop,
@@ -23,10 +24,17 @@ channels:
 
 dependencies:
   - arrow
+  - bottleneck
   - Click
+  - matplotlib
   - netCDF4
   - pip
   - python=3.7
+  - python-dateutil
+  - pytz
+  - requests
+  - retrying
+  - scipy
   - xarray
 
   # For unit tests
@@ -39,3 +47,6 @@ dependencies:
 
   # For coding style
   - black
+
+  - pip:
+      - angles
