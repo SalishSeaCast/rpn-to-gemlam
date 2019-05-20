@@ -73,8 +73,8 @@ _rpn-netcdf-hour () {
   # Convert accumulated precip to kg m^2 / s  (from m accumulated over an hour)
   /usr/bin/ncap2 -4 -O -s "PR=PR/3.6" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 
-  # Convert instantaneous precip to kg m^2 / s (from m / hr)
-  /usr/bin/ncap2 -4 -O -s "RT=RT/3.6" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  # Convert instantaneous precip to kg m^2 / s (from m / s)
+  /usr/bin/ncap2 -4 -O -s "RT=RT*1000" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
 }
 
 
