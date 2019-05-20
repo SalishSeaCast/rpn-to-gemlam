@@ -40,10 +40,19 @@ except IOError:
 install_requires = [
     # see environment-dev.yaml for conda environment dev installation
     # see requirements.txt for versions most recently used in development
+    "angles",
     "arrow",
+    "bottleneck",
     "Click",
+    "matplotlib",
     "netCDF4",
+    "python - dateutil",
+    "pytz",
+    "requests",
+    "retrying",
+    "scipy",
     "xarray",
+    # pip install --editable ../tools/SalishSeaTools
 ]
 
 setup(
