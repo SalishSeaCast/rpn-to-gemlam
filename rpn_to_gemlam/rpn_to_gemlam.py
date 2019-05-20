@@ -17,10 +17,11 @@ from the ECCC 2007-2014 archival GEMLAM files produced by the experimental phase
 of the HRPDS model.
 """
 import logging
+from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import arrow
 import click
@@ -54,25 +55,48 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     tmp_dir = Path("/data/dlatorne/tmp-rpn-to-gem-lam")
     tmp_dir.mkdir(exist_ok=True)
 
-    _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, tmp_dir)
+    _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir)
+    _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir)
+
     hrs_range = arrow.Arrow.range(
-        "hour", netcdf_start_date.shift(days=-1), netcdf_end_date.shift(hours=+23)
+        "hour", netcdf_start_date, netcdf_end_date.shift(hours=+23)
     )
     for netcdf_hr in hrs_range:
+        prev_hr = netcdf_hr.shift(hours=-1)
+        prev_nemo_date = f"y{prev_hr.year}m{prev_hr.month:02d}d{prev_hr.day:02d}"
+        prev_nemo_hr_ds_path = (
+            tmp_dir / f"gemlam_{prev_nemo_date}_{netcdf_hr.hour:03d}.nc"
+        )
         nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
         nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
-        if not nemo_hr_ds_path.exists():
-            raise FileNotFoundError(f"missing {nemo_hr_ds_path}")
+        nemo_hr_ds_dest = dest_dir / nemo_hr_ds_path.name
+        shutil.copy2(nemo_hr_ds_path, nemo_hr_ds_dest)
+        bash_cmd = (
+            f"avg-diff-hrs {prev_nemo_hr_ds_path} {nemo_hr_ds_path} {nemo_hr_ds_dest}"
+        )
+        _exec_bash_func(bash_cmd)
 
 
-def _rpn_hrs_to_nemo_hrs(
-    netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, tmp_dir
-):
+def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
+    """Create hour forecast files containing NEMO/FVCOM variables from RPN files.
+
+    :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
+    :type netcdf_start_date: :py:class:`arrow.Arrow`
+
+    :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
+    :type netcdf_end_date: :py:class:`arrow.Arrow`
+
+    :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
+    :type rpn_dir: :py:class:`pathlib.Path`
+
+    :param tmp_dir: Temporary working directory for files created during processing.
+    :type tmp_dir: :py:class:`pathlib.Path`
+    """
     days_range = arrow.Arrow.range(
         "day", netcdf_start_date.shift(days=-1), netcdf_end_date
     )
     for netcdf_date in days_range:
-        bash_cmd = f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} {dest_dir}"
+        bash_cmd = f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir}"
         _exec_bash_func(bash_cmd)
         nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
         for hr in range(18, 25):
@@ -98,6 +122,28 @@ def _rpn_hrs_to_nemo_hrs(
             except FileNotFoundError:
                 # Missing forecast hour; we'll fill it in later
                 continue
+
+
+def _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir):
+    """Fill in missing forecast hour files by interpolation.
+
+    :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
+    :type netcdf_start_date: :py:class:`arrow.Arrow`
+
+    :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
+    :type netcdf_end_date: :py:class:`arrow.Arrow`
+
+    :param tmp_dir: Temporary working directory for files created during processing.
+    :type tmp_dir: :py:class:`pathlib.Path`
+    """
+    hrs_range = arrow.Arrow.range(
+        "hour", netcdf_start_date.shift(days=-1), netcdf_end_date.shift(hours=+23)
+    )
+    for netcdf_hr in hrs_range:
+        nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
+        if not nemo_hr_ds_path.exists():
+            raise FileNotFoundError(f"missing {nemo_hr_ds_path}")
 
 
 def _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path):
@@ -370,5 +416,8 @@ def cli(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, verbosity):
         stream=sys.stdout,
     )
     rpn_to_gemlam(
-        arrow.get(netcdf_start_date), arrow.get(netcdf_end_date), rpn_dir, dest_dir
+        arrow.get(netcdf_start_date),
+        arrow.get(netcdf_end_date),
+        Path(rpn_dir),
+        Path(dest_dir),
     )
