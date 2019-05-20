@@ -132,8 +132,13 @@ avg-diff-hrs () {
 
   if [ ${accumulating} -eq 1 ]
   then
+    # precipitation value is accumulated in this hour so calculate this hour value
+    # by subtracting previous hour value
     /usr/bin/ncdiff -4 -O -o /tmp/precip.nc -v precip ${hr_file} ${prev_hr_file}
     /usr/bin/ncks -4 -A -v precip /tmp/precip.nc ${dest_file}
     /bin/rm -f /tmp/precip.nc
   fi
+
+  # adjust time_counter value so that it is always on the hour
+  /usr/bin/ncap2 -O -s 'time_counter=int((time_counter+1800)/3600)*3600;' ${dest_file} ${dest_file}
 }
