@@ -58,6 +58,12 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir)
     _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir)
     _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, tmp_dir)
+    days_range = arrow.Arrow.range("day", netcdf_start_date, netcdf_end_date)
+    for netcdf_date in days_range:
+        nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
+        nemo_day_ds_path = dest_dir / f"gemlam_{nemo_date}.nc"
+        bash_cmd = f"cat-hrs-to-days {nemo_day_ds_path.stem}"
+        _exec_bash_func(bash_cmd)
 
 
 def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):

@@ -143,3 +143,11 @@ avg-diff-hrs () {
   # increment by 900 instead of 1800 because ncap2 int() rounds rather than truncating
   /usr/bin/ncap2 -O -s 'time_counter=int((time_counter+900)/3600)*3600;' ${dest_file} ${dest_file}
 }
+
+
+cat-hrs-to-days () {
+  dest_file_stem=$1
+
+  /usr/bin/ncrcat -4 -L4 -O ${dest_file_stem}_0??.nc ${dest_file_stem}.nc
+  /bin/rm -f ${dest_file_stem}_0??.nc
+}
