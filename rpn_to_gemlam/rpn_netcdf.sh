@@ -140,5 +140,6 @@ avg-diff-hrs () {
   fi
 
   # adjust time_counter value so that it is always on the hour
-  /usr/bin/ncap2 -O -s 'time_counter=int((time_counter+1800)/3600)*3600;' ${dest_file} ${dest_file}
+  # increment by 900 instead of 1800 because ncap2 int() rounds rather than truncating
+  /usr/bin/ncap2 -O -s 'time_counter=int((time_counter+900)/3600)*3600;' ${dest_file} ${dest_file}
 }
