@@ -113,30 +113,30 @@ avg-diff-hrs () {
 
   # average instantaneous solar radiation from 2 hours to get value that should be
   # reasonably consistent with the hour-averaged values we get from HRDPS GRIBs
-  /usr/bin/ncra -4 -O -o /tmp/solar.nc -v solar ${prev_hr_file} ${hr_file}
-  /usr/bin/ncks -4 -A -v solar /tmp/solar.nc ${dest_file}
-  /bin/rm -f /tmp/solar.nc
+  /usr/bin/ncra -4 -O -o /dev/shm/solar.nc -v solar ${prev_hr_file} ${hr_file}
+  /usr/bin/ncks -4 -A -v solar /dev/shm/solar.nc ${dest_file}
+  /bin/rm -f /dev/shm/solar.nc
 
   # calculate precipitation sums over domain to use as check for whether or not
   # we are at the first hour of a day's precipitation accumulation
-  /usr/bin/ncwa -4 -O -o /tmp/prev_precip_sum.nc -v precip ${prev_hr_file}
-  /usr/bin/ncwa -4 -O -o /tmp/hr_precip_sum.nc -v precip ${hr_file}
+  /usr/bin/ncwa -4 -O -o /dev/shm/prev_precip_sum.nc -v precip ${prev_hr_file}
+  /usr/bin/ncwa -4 -O -o /dev/shm/hr_precip_sum.nc -v precip ${hr_file}
 
   # calculate difference of precipitation sums
-  prev_precip_sum=$(/usr/bin/ncdump -v precip /tmp/prev_precip_sum.nc | grep 'precip =' | cut -c 11-)
+  prev_precip_sum=$(/usr/bin/ncdump -v precip /dev/shm/prev_precip_sum.nc | grep 'precip =' | cut -c 11-)
   prev_precip_sum=${prev_precip_sum::-2}
-  hr_precip_sum=$(/usr/bin/ncdump -v precip /tmp/hr_precip_sum.nc | grep 'precip =' | cut -c 11-)
+  hr_precip_sum=$(/usr/bin/ncdump -v precip /dev/shm/hr_precip_sum.nc | grep 'precip =' | cut -c 11-)
   hr_precip_sum=${hr_precip_sum::-2}
   accumulating=$(echo "${hr_precip_sum}>${prev_precip_sum}" | bc)
-  /bin/rm -f /tmp/prev_precip_sum.nc /tmp/hr_precip_sum.nc
+  /bin/rm -f /dev/shm/prev_precip_sum.nc /dev/shm/hr_precip_sum.nc
 
   if [ ${accumulating} -eq 1 ]
   then
     # precipitation value is accumulated in this hour so calculate this hour value
     # by subtracting previous hour value
-    /usr/bin/ncdiff -4 -O -o /tmp/precip.nc -v precip ${hr_file} ${prev_hr_file}
-    /usr/bin/ncks -4 -A -v precip /tmp/precip.nc ${dest_file}
-    /bin/rm -f /tmp/precip.nc
+    /usr/bin/ncdiff -4 -O -o /dev/shm/precip.nc -v precip ${hr_file} ${prev_hr_file}
+    /usr/bin/ncks -4 -A -v precip /dev/shm/precip.nc ${dest_file}
+    /bin/rm -f /dev/shm/precip.nc
   fi
 
   # adjust time_counter value so that it is always on the hour
