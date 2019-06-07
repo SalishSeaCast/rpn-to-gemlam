@@ -53,7 +53,7 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, Path(tmp_dir))
-        _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, Path(tmp_dir))
+        _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
         _calc_solar_and_precip(
             netcdf_start_date, netcdf_end_date, dest_dir, Path(tmp_dir)
         )
@@ -114,7 +114,7 @@ def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
                 continue
 
 
-def _handle_missing_hr_files(netcdf_end_date, netcdf_start_date, tmp_dir):
+def _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, tmp_dir):
     """Fill in missing forecast hour files by interpolation.
 
     :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
