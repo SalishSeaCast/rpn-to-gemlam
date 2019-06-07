@@ -97,12 +97,6 @@ rpn-netcdf () {
 
   # delete empty files from missing hours
   /usr/bin/find ${tmp_dir} -empty -delete
-
-  # # concatenate netCDF hour file along time dimension
-  # ncrcat -4 -L4 -O -o ${tmp_dir}/${day}06.nc ${tmp_dir}/${daym1}06_0*.nc ${dest_dir}${day}06_0*.nc
-
-  # # delete hourly files
-  # /bin/rm -f ${tmp_dir}/${daym1}06_0*.nc ${tmp_dir}/${day}06_0*.nc
 }
 
 
