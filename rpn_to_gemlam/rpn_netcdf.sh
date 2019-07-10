@@ -145,3 +145,17 @@ cat-hrs-to-days () {
   /usr/bin/ncrcat -4 -L4 -O ${dest_file_stem}_0??.nc ${dest_file_stem}.nc
   /bin/rm -f ${dest_file_stem}_0??.nc
 }
+
+
+interp-for-time_counter-value () {
+  # Interpolate variable values for time_counter_value from prev_avail_hr_file and
+  # next_avail_hr_file into missing_hr_file
+  time_counter_value=$1
+  prev_avail_hr_file=$2
+  next_avail_hr_file=$3
+  missing_hr_file=$4
+
+  /usr/bin/ncflint -i time_counter,${time_counter_value} \
+    -v atmpres,percentcloud,PRATE_surface,precip,qair,RH_2maboveground,solar,tair,therm_rad,u_wind,v_wind \
+    ${prev_avail_hr_file} ${next_avail_hr_file} ${missing_hr_file}
+}
