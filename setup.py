@@ -46,7 +46,7 @@ install_requires = [
     "Click",
     "matplotlib",
     "netCDF4",
-    "python - dateutil",
+    "python-dateutil",
     "pytz",
     "requests",
     "retrying",
