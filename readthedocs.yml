@@ -7,7 +7,7 @@ python:
   version: 3.7
 
 conda:
-  environment: environment-rtd.yaml
+  environment: env/environment-rtd.yaml
 
 build:
   image: latest
