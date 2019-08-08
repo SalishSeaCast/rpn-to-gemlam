@@ -34,7 +34,7 @@ from salishsea_tools import viz_tools
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
+def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir):
     """Generate an atmospheric forcing file for the SalishSeaCast NEMO model
     from the ECCC 2007-2014 archival GEMLAM files produced by the experimental
     phase of the HRPDS model.
@@ -45,6 +45,8 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
     :type netcdf_end_date: :py:class:`arrow.Arrow`
 
+    :param str forecast: HRDPS forecast to calculate netCDF file from; 00, 06, 12, or 18.
+
     :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
     :type rpn_dir: :py:class:`pathlib.Path`
 
@@ -52,7 +54,9 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
     :type dest_dir: :py:class:`pathlib.Path`
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
-        _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, Path(tmp_dir))
+        _rpn_hrs_to_nemo_hrs(
+            netcdf_start_date, netcdf_end_date, forecast, rpn_dir, Path(tmp_dir)
+        )
         _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
         _calc_solar_and_precip(
             netcdf_start_date, netcdf_end_date, dest_dir, Path(tmp_dir)
@@ -67,7 +71,9 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir):
             _exec_bash_func(bash_cmd)
 
 
-def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
+def _rpn_hrs_to_nemo_hrs(
+    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, tmp_dir
+):
     """Create hour forecast files containing NEMO/FVCOM variables from RPN files.
 
     :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
@@ -75,6 +81,8 @@ def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
 
     :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
     :type netcdf_end_date: :py:class:`arrow.Arrow`
+
+    :param str forecast: HRDPS forecast to calculate netCDF file from; 00, 06, 12, or 18.
 
     :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
     :type rpn_dir: :py:class:`pathlib.Path`
@@ -86,26 +94,31 @@ def _rpn_hrs_to_nemo_hrs(netcdf_start_date, netcdf_end_date, rpn_dir, tmp_dir):
         "day", netcdf_start_date.shift(days=-1), netcdf_end_date
     )
     for netcdf_date in days_range:
-        bash_cmd = f"rpn-netcdf {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir}"
+        bash_cmd = f"rpn-netcdf {forecast} {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir}"
         _exec_bash_func(bash_cmd)
         nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
-        for hr in range(18, 25):
+        for hr in range(24 - int(forecast), 25):
             rpn_hr_ds_path = (
                 tmp_dir
-                / f"{netcdf_date.shift(days=-1).format('YYYYMMDD')}06_{(hr):03d}.nc"
+                / f"{netcdf_date.shift(days=-1).format('YYYYMMDD')}{forecast}_{hr:03d}.nc"
             )
-            nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr - 18):03d}.nc"
+            nemo_hr_ds_path = (
+                tmp_dir / f"gemlam_{nemo_date}_{(hr - (24-int(forecast))):03d}.nc"
+            )
             try:
                 _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
                 rpn_hr_ds_path.unlink()
             except FileNotFoundError:
                 # Missing forecast hour; we'll fill it in later
                 continue
-        for hr in range(18):
+        for hr in range(24 - int(forecast)):
             rpn_hr_ds_path = (
-                tmp_dir / f"{netcdf_date.format('YYYYMMDD')}06_{(hr + 1):03d}.nc"
+                tmp_dir
+                / f"{netcdf_date.format('YYYYMMDD')}{forecast}_{(hr + 1):03d}.nc"
             )
-            nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{(hr + 1 + 6):03d}.nc"
+            nemo_hr_ds_path = (
+                tmp_dir / f"gemlam_{nemo_date}_{(hr + 1 + int(forecast)):03d}.nc"
+            )
             try:
                 _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path)
                 rpn_hr_ds_path.unlink()
@@ -435,6 +448,7 @@ def _exec_bash_func(bash_cmd):
 @click.command(help=rpn_to_gemlam.__doc__)
 @click.argument("netcdf_start_date", type=click.DateTime(formats=("%Y-%m-%d",)))
 @click.argument("netcdf_end_date", type=click.DateTime(formats=("%Y-%m-%d",)))
+@click.argument("forecast", type=click.Choice(("00", "06", "12", "18")))
 @click.argument("rpn_dir", type=click.Path(exists=True))
 @click.argument("dest_dir", type=click.Path(writable=True))
 @click.option(
@@ -448,7 +462,7 @@ def _exec_bash_func(bash_cmd):
         warning, error, and critical should be silent unless something bad goes wrong.
     """,
 )
-def cli(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, verbosity):
+def cli(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, verbosity):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
     Please see:
@@ -460,6 +474,8 @@ def cli(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, verbosity):
 
     :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
     :type netcdf_end_date: :py:class:`datetime.datetime`
+
+    :param str forecast: HRDPS forecast to calculate netCDF file from; 00, 06, 12, or 18.
 
     :param rpn_dir: Directory tree in which GEMLAM RPN files are stored in year directories.
     :type rpn_dir: :py:class:`pathlib.Path`
@@ -484,6 +500,7 @@ def cli(netcdf_start_date, netcdf_end_date, rpn_dir, dest_dir, verbosity):
     rpn_to_gemlam(
         arrow.get(netcdf_start_date),
         arrow.get(netcdf_end_date),
+        forecast,
         Path(rpn_dir),
         Path(dest_dir),
     )
