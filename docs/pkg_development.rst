@@ -112,7 +112,7 @@ and building the documentation with the commands:
 .. code-block:: bash
 
     $ cd rpn-to-gemlam
-    $ conda env create -f environment-dev.yaml
+    $ conda env create -f env/environment-dev.yaml
     $ source activate rpn-to-gemlam
     (rpn-to-gemlam)$ pip install --editable .
 
