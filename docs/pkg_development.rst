@@ -75,19 +75,23 @@ Getting the Code
     :target: https://bitbucket.org/salishsea/rpn-to-gemlam/
     :alt: Mercurial on Bitbucket
 
-Clone the code and documentation `repository`_ from Bitbucket with:
+Clone the code and documentation `repository`_,
+and the `tools repository`_ from Bitbucket with:
 
 .. _repository: https://bitbucket.org/salishsea/rpn-to-gemlam
+.. _tools repository: https://bitbucket.org/salishsea/tools
 
 .. code-block:: bash
 
     $ hg clone ssh://hg@bitbucket.org/salishsea/rpn-to-gemlam
+    $ hg clone ssh://hg@bitbucket.org/salishsea/tools
 
 or
 
 .. code-block:: bash
 
-    $ hg clone https://douglatornell@bitbucket.org/salishsea/rpn-to-gemlam
+    $ hg clone https://your-userid@bitbucket.org/salishsea/rpn-to-gemlam
+    $ hg clone https://your-userid@bitbucket.org/salishsea/tools
 
 if you don't have `ssh key authentication`_ set up on Bitbucket.
 
@@ -114,6 +118,7 @@ and building the documentation with the commands:
     $ cd rpn-to-gemlam
     $ conda env create -f env/environment-dev.yaml
     $ source activate rpn-to-gemlam
+    (rpn-to-gemlam)$ pip install --editable ../tools/SalishSeaTools
     (rpn-to-gemlam)$ pip install --editable .
 
 The :kbd:`--editable` option in the :command:`pip install` command above installs the :kbd:`rpn_to_gemlam` package from the cloned repo via symlinks so that the installed :kbd:`rpn_to_gemlam` package will be automatically updated as the repo evolves.
