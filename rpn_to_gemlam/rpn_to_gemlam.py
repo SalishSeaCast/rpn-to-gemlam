@@ -462,6 +462,7 @@ def _exec_bash_func(bash_cmd):
         warning, error, and critical should be silent unless something bad goes wrong.
     """,
 )
+@click.version_option()
 def cli(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, verbosity):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
