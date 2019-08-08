@@ -67,7 +67,7 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_di
                 f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
             )
             nemo_day_ds_path = dest_dir / f"gemlam_{nemo_date}.nc"
-            bash_cmd = f"cat-hrs-to-days {nemo_day_ds_path.stem}"
+            bash_cmd = f"cat-hrs-to-days {nemo_day_ds_path.with_suffix('')}"
             _exec_bash_func(bash_cmd)
 
 
