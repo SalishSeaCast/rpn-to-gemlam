@@ -23,6 +23,47 @@ import pytest
 from rpn_to_gemlam import rpn_to_gemlam
 
 
+@pytest.mark.parametrize("forecast", ("00", "06", "12", "18"))
+@patch("rpn_to_gemlam.rpn_to_gemlam._exec_bash_func", autospec=True)
+@patch("rpn_to_gemlam.rpn_to_gemlam._write_nemo_hr_file", autospec=True)
+class TestRPN_HrsToNEMO_Hrs:
+    """Unit tests for _rpn_hrs_to_nemo_hrs().
+    """
+
+    def test_rpn_netcdf_calls(self, m_write_nemo_hr_file, m_exec_bash_func, forecast):
+        rpn_to_gemlam._rpn_hrs_to_nemo_hrs(
+            arrow.get("2007-01-01"),
+            arrow.get("2007-01-01"),
+            forecast,
+            Path("rpn_dir"),
+            Path("tmp_dir"),
+        )
+        assert m_exec_bash_func.call_args_list == [
+            call(f"rpn-netcdf {forecast} 2006-12-31 rpn_dir tmp_dir"),
+            call(f"rpn-netcdf {forecast} 2007-01-01 rpn_dir tmp_dir"),
+        ]
+
+    def test_write_nemo_hr_file_calls(
+        self, m_write_nemo_hr_file, m_exec_bash_func, forecast
+    ):
+        rpn_to_gemlam._rpn_hrs_to_nemo_hrs(
+            arrow.get("2007-01-01"),
+            arrow.get("2007-01-01"),
+            forecast,
+            Path("rpn_dir"),
+            Path("tmp_dir"),
+        )
+        assert m_write_nemo_hr_file.call_count == 50
+        assert m_write_nemo_hr_file.call_args_list[0] == call(
+            Path(f"tmp_dir/20061230{forecast}_{(24-int(forecast)):03d}.nc"),
+            Path(f"tmp_dir/gemlam_y2006m12d31_000.nc"),
+        )
+        assert m_write_nemo_hr_file.call_args_list[-1] == call(
+            Path(f"tmp_dir/20070101{forecast}_{(24-int(forecast)):03d}.nc"),
+            Path(f"tmp_dir/gemlam_y2007m01d01_024.nc"),
+        )
+
+
 @patch("rpn_to_gemlam.rpn_to_gemlam._interpolate_missing_hrs", autospec=True)
 @patch("rpn_to_gemlam.rpn_to_gemlam.Path.exists", autospec=True)
 class TestHandleMissingHrFiles:

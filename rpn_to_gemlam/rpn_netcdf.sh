@@ -19,81 +19,127 @@ CSTRPN2CDF=/data/dlatorne/MEOPAR/cstrpn2cdf/cstrpn2cdf
 LD_LIBRARY_PATH=/data/dlatorne/MEOPAR/cstrpn2cdf:${LD_LIBRARY_PATH}
 
 _rpn-netcdf-hour () {
-  day=$1
-  hr=$2
+  forecast=$1
+  day=$2
+  hr=$3
   yr=$(date --date="${day}" +%Y)
-  rpn_dir=$3
-  tmp_dir=$4
+  rpn_dir=$4
+  tmp_dir=$5
 
   # decompress GEMLAM RPN forecast hour file
-  /bin/bzip2 -c -k -d ${rpn_dir}/${yr}/${day}06_${hr}.bz2 > "${tmp_dir}/${day}06_${hr}"
+  /bin/bzip2 -c -k -d \
+    ${rpn_dir}/${yr}/${day}${forecast}_${hr}.bz2 > "${tmp_dir}/${day}${forecast}_${hr}"
 
   # extract variables of interest from GEMLAM RPN file
   for var in FB NT PN PR RN RT
   do
      LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ${CSTRPN2CDF} \
-        -s ${tmp_dir}/${day}06_${hr} \
-        -d ${tmp_dir}/${day}06_${var}_${hr} \
+        -s ${tmp_dir}/${day}${forecast}_${hr} \
+        -d ${tmp_dir}/${day}${forecast}_${var}_${hr} \
         -nomv ${var} -ip1 0
   done
   for var in TD TT UU VV
   do
      LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ${CSTRPN2CDF} \
-     -s ${tmp_dir}/${day}06_${hr} \
-     -d ${tmp_dir}/${day}06_${var}_${hr} \
+     -s ${tmp_dir}/${day}${forecast}_${hr} \
+     -d ${tmp_dir}/${day}${forecast}_${var}_${hr} \
      -nomv ${var} -ip1 12000
   done
 
   # delete GEMLAM RPN forecast hour file
-  /bin/rm -f ${tmp_dir}/${day}06_${hr}
+  /bin/rm -f ${tmp_dir}/${day}${forecast}_${hr}
 
   # append single variable files into a single file for the hour
   for var in FB NT PN PR RN RT TD TT UU VV
   do
-    /usr/bin/ncks -4 -h -A ${tmp_dir}/${day}06_${var}_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+    /usr/bin/ncks -4 -h -A \
+      ${tmp_dir}/${day}${forecast}_${var}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
   done
 
   # delete single variable files
-  /bin/rm -f ${tmp_dir}/${day}06_*_${hr}.nc
+  /bin/rm -f ${tmp_dir}/${day}${forecast}_*_${hr}.nc
 
   # Reduce grid size to what is needed for SalishSeaCast
   /usr/bin/ncea -4 -O -d y,20,285 -d x,110,365 \
-    ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 
   # Convert air temperature from Celcuis to Kelvin
-  /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "TT=TT+273.14" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 
   # Convert atmospheric pressure from millibars to Pascals
-  /usr/bin/ncap2 -4 -O -s "PN=PN*100" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "PN=PN*100" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 
   # Convert wind from knots to m/s
-  /usr/bin/ncap2 -4 -O -s "UU=UU*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
-  /usr/bin/ncap2 -4 -O -s "VV=VV*0.514444" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "UU=UU*0.514444" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "VV=VV*0.514444" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 
   # Convert accumulated precip to kg m^2 / s  (from m accumulated over an hour)
-  /usr/bin/ncap2 -4 -O -s "PR=PR/3.6" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "PR=PR/3.6" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 
   # Convert instantaneous precip to kg m^2 / s (from m / s)
-  /usr/bin/ncap2 -4 -O -s "RT=RT*1000" ${tmp_dir}/${day}06_${hr}.nc ${tmp_dir}/${day}06_${hr}.nc
+  /usr/bin/ncap2 -4 -O -s "RT=RT*1000" \
+    ${tmp_dir}/${day}${forecast}_${hr}.nc ${tmp_dir}/${day}${forecast}_${hr}.nc
 }
 
 
 rpn-netcdf () {
-  netcdf_date=$1
-  rpn_dir=$2
-  tmp_dir=$3
+  forecast=$1
+  netcdf_date=$2
+  rpn_dir=$3
+  tmp_dir=$4
 
-  daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
-  for hr in {018..024}
-  do
-    _rpn-netcdf-hour ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
-  done
-
-  day=$(date --date="${netcdf_date}" +%Y%m%d)
-  for hr in {001..017}
-  do
-    _rpn-netcdf-hour ${day} ${hr} ${rpn_dir} ${tmp_dir}
-  done
+  case ${forecast} in
+  00)
+    daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
+    _rpn-netcdf-hour ${forecast} ${daym1} 024 ${rpn_dir} ${tmp_dir}
+    day=$(date --date="${netcdf_date}" +%Y%m%d)
+    for hr in {001..023}
+    do
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    ;;
+  06)
+    daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
+    for hr in {018..024}
+    do
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    day=$(date --date="${netcdf_date}" +%Y%m%d)
+    for hr in {001..017}
+    do
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    ;;
+  12)
+    daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
+    for hr in {012..024}
+    do
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    day=$(date --date="${netcdf_date}" +%Y%m%d)
+    for hr in {001..011}
+    do
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    ;;
+  18)
+    daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
+    for hr in {006..024}
+    do
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    day=$(date --date="${netcdf_date}" +%Y%m%d)
+    for hr in {001..005}
+    do
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+    done
+    ;;
+esac
 
   # delete empty files from missing hours
   /usr/bin/find ${tmp_dir} -empty -delete
