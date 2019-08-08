@@ -29,9 +29,9 @@ copyright_years = (
 copyright = f"{copyright_years}, {author}"
 
 # The short X.Y version
-from rpn_to_gemlam import __pkg_metadata__
+import rpn_to_gemlam
 
-version = __pkg_metadata__.VERSION
+version = rpn_to_gemlam.__version__
 # The full version, including alpha/beta/rc tags
 release = version
 
