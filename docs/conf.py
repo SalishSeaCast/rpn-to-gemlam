@@ -12,7 +12,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import datetime
 import os
 import sys
 
@@ -21,10 +20,21 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "rpn-to-gemlam"
+import configparser
+
+setup_cfg = configparser.ConfigParser()
+setup_cfg.read(os.path.abspath("../setup.cfg"))
+project = setup_cfg["metadata"]["name"]
+
 author = "Salish Sea MEOPAR Project Contributors and The University of British Columbia"
+
+import datetime
+
+pkg_creation_year = 2019
 copyright_years = (
-    "2019" if datetime.date.today().year == 2019 else f"2019-{datetime.date.today():%Y}"
+    f"{pkg_creation_year}"
+    if datetime.date.today().year == pkg_creation_year
+    else f"{pkg_creation_year}-{datetime.date.today():%Y}"
 )
 copyright = f"{copyright_years}, {author}"
 
