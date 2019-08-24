@@ -169,6 +169,8 @@ def _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, tmp_dir):
                     raise FileNotFoundError(f"missing >4 hours: {missing_hrs}")
         else:
             missing_hrs.append({"hr": netcdf_hr, "ds_path": nemo_hr_ds_path})
+    if missing_hrs:
+        raise FileNotFoundError(f"missing hours at end of date range: {missing_hrs}")
 
 
 def _interpolate_missing_hrs(missing_hrs):

@@ -72,7 +72,7 @@ class TestHandleMissingHrFiles:
 
     def test_lteq_4_missing_hrs(self, m_exists, m_interp_missing_hrs):
         m_exists.side_effect = [True, False, False] + [True] * 45
-        missing_hrs = rpn_to_gemlam._handle_missing_hr_files(
+        rpn_to_gemlam._handle_missing_hr_files(
             arrow.get("2013-08-29"), arrow.get("2013-08-29"), Path("tmp_dir")
         )
         m_interp_missing_hrs.assert_called_once_with(
@@ -90,11 +90,20 @@ class TestHandleMissingHrFiles:
 
     def test_gt_4_missing_hrs(self, m_exists, m_interp_missing_hrs):
         m_exists.side_effect = [True] + [False] * 5 + [True] * 42
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(FileNotFoundError, match="missing >4 hours"):
             rpn_to_gemlam._handle_missing_hr_files(
                 arrow.get("2013-08-29"), arrow.get("2013-08-29"), Path("tmp_dir")
             )
         assert not m_interp_missing_hrs.called
+
+    def test_missing_hrs_at_end_of_date_range(self, m_exists, m_interp_missing_hrs):
+        m_exists.side_effect = [True] * 36 + [False] * 12
+        with pytest.raises(
+            FileNotFoundError, match="missing hours at end of date range"
+        ):
+            rpn_to_gemlam._handle_missing_hr_files(
+                arrow.get("2007-02-01"), arrow.get("2007-02-01"), Path("tmp_dir")
+            )
 
 
 @patch("rpn_to_gemlam.rpn_to_gemlam.logging", autospec=True)
