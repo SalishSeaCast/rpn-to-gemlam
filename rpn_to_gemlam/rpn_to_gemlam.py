@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 
 import arrow
 import click
@@ -163,17 +164,18 @@ def _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, tmp_dir):
         if nemo_hr_ds_path.exists():
             if missing_hrs:
                 if len(missing_hrs) <= 4:
-                    _interpolate_missing_hrs(missing_hrs)
+                    _interpolate_intra_day_missing_hrs(missing_hrs)
                     missing_hrs = []
                 else:
-                    raise FileNotFoundError(f"missing >4 hours: {missing_hrs}")
+                    _interpolate_inter_day_missing_hrs(missing_hrs)
+                    missing_hrs = []
         else:
             missing_hrs.append({"hr": netcdf_hr, "ds_path": nemo_hr_ds_path})
     if missing_hrs:
         raise FileNotFoundError(f"missing hours at end of date range: {missing_hrs}")
 
 
-def _interpolate_missing_hrs(missing_hrs):
+def _interpolate_intra_day_missing_hrs(missing_hrs):
     prev_avail_hr = missing_hrs[0]["hr"].shift(hours=-1)
     prev_nemo_date = (
         f"y{prev_avail_hr.year}m{prev_avail_hr.month:02d}d{prev_avail_hr.day:02d}"
@@ -224,6 +226,58 @@ def _interpolate_missing_hrs(missing_hrs):
         logging.info(f"created {missing_hr_path} by interpolation")
 
 
+def _interpolate_inter_day_missing_hrs(missing_hrs):
+    for missing_hr in missing_hrs:
+        interp_info = _calc_interp_info(missing_hr)
+        logging.info(
+            f"interpolating for hour {missing_hr['hr'].hour:03d} "
+            f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
+        )
+        for day in range((interp_info.next_day_hr - interp_info.prev_day_hr).days - 1):
+            time_counter = interp_info.prev_day_time_counter + (day + 1) * 86400
+            missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+            missing_hr_path = missing_hr["ds_path"].with_name(
+                f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
+            )
+            bash_cmd = (
+                f"interp-for-time_counter-value {time_counter} "
+                f"{interp_info.prev_day_hr_path} {interp_info.next_day_hr_path} {missing_hr_path}"
+            )
+            _exec_bash_func(bash_cmd)
+            logging.info(f"calculated {missing_hr_path} by interpolation")
+
+
+def _calc_interp_info(missing_hr):
+    prev_day_hr = missing_hr["hr"].shift(days=-1)
+    prev_nemo_date = (
+        f"y{prev_day_hr.year}m{prev_day_hr.month:02d}d{prev_day_hr.day:02d}"
+    )
+    prev_day_hr_path = missing_hr["ds_path"].with_name(
+        f"gemlam_{prev_nemo_date}_{prev_day_hr.hour:03d}.nc"
+    )
+    with xarray.open_dataset(prev_day_hr_path, decode_cf=False) as ds:
+        prev_day_time_counter = int(ds.time_counter.values[0])
+    next_day_hr = missing_hr["hr"].shift(days=+1)
+    next_nemo_date = (
+        f"y{next_day_hr.year}m{next_day_hr.month:02d}d{next_day_hr.day:02d}"
+    )
+    next_day_hr_path = missing_hr["ds_path"].with_name(
+        f"gemlam_{next_nemo_date}_{next_day_hr.hour:03d}.nc"
+    )
+    if not next_day_hr_path.exists():
+        raise FileNotFoundError(
+            f"can't complete inter-day interpolation due to not yet calculated "
+            f"next day hour file: {next_day_hr_path}"
+        )
+    return SimpleNamespace(
+        prev_day_hr=prev_day_hr,
+        prev_day_hr_path=prev_day_hr_path,
+        prev_day_time_counter=prev_day_time_counter,
+        next_day_hr=next_day_hr,
+        next_day_hr_path=next_day_hr_path,
+    )
+
+
 def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
     """Fill in missing RPN variables by interpolation.
 
@@ -269,35 +323,20 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
 
 def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
     for missing_hr in missing_hrs:
-        prev_day_hr = missing_hr["hr"].shift(days=-1)
-        prev_nemo_date = (
-            f"y{prev_day_hr.year}m{prev_day_hr.month:02d}d{prev_day_hr.day:02d}"
-        )
-        prev_day_hr_path = missing_hr["ds_path"].with_name(
-            f"gemlam_{prev_nemo_date}_{prev_day_hr.hour:03d}.nc"
-        )
-        with xarray.open_dataset(prev_day_hr_path, decode_cf=False) as ds:
-            prev_day_time_counter = int(ds.time_counter.values[0])
-        next_day_hr = missing_hr["hr"].shift(days=+1)
-        next_nemo_date = (
-            f"y{next_day_hr.year}m{next_day_hr.month:02d}d{next_day_hr.day:02d}"
-        )
-        next_day_hr_path = missing_hrs[0]["ds_path"].with_name(
-            f"gemlam_{next_nemo_date}_{next_day_hr.hour:03d}.nc"
-        )
+        interp_info = _calc_interp_info(missing_hr)
         logging.info(
             f"interpolating {var} for hour {missing_hr['hr'].hour:03d} "
-            f"across days between {prev_day_hr_path} and {next_day_hr_path}"
+            f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
         )
-        for day in range((next_day_hr - prev_day_hr).days - 1):
-            time_counter = prev_day_time_counter + (day + 1) * 86400
+        for day in range((interp_info.next_day_hr - interp_info.prev_day_hr).days - 1):
+            time_counter = interp_info.prev_day_time_counter + (day + 1) * 86400
             missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
             missing_hr_path = missing_hr["ds_path"].with_name(
                 f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
             )
             bash_cmd = (
                 f"interp-var-for-time_counter-value {var} {time_counter} "
-                f"{prev_day_hr_path} {next_day_hr_path} {missing_hr_path}"
+                f"{interp_info.prev_day_hr_path} {interp_info.next_day_hr_path} {missing_hr_path}"
             )
             _exec_bash_func(bash_cmd)
             logging.info(f"calculated {var} for {missing_hr_path} by interpolation")
