@@ -205,3 +205,19 @@ interp-for-time_counter-value () {
     -v atmpres,percentcloud,PRATE_surface,precip,qair,RH_2maboveground,solar,tair,therm_rad,u_wind,v_wind \
     ${prev_avail_hr_file} ${next_avail_hr_file} ${missing_hr_file}
 }
+
+
+interp-var-for-time_counter-value () {
+  # Interpolate specified variable values for time_counter_value from prev_avail_hr_file and
+  # next_avail_hr_file into missing_hr_file
+  var=$1
+  time_counter_value=$2
+  prev_avail_hr_file=$3
+  next_avail_hr_file=$4
+  missing_hr_file=$5
+
+  /usr/bin/ncflint -O -i time_counter,${time_counter_value} -v ${var} \
+    ${prev_avail_hr_file} ${next_avail_hr_file} ${var}.nc
+  /usr/bin/ncks -A -v ${var} ${var}.nc ${missing_hr_file}
+  /usr/bin/ncatted -a missing_variables,global,d,, ${missing_hr_file}
+}

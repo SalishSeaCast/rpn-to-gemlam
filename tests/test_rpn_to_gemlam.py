@@ -97,14 +97,16 @@ class TestHandleMissingHrFiles:
         assert not m_interp_missing_hrs.called
 
 
+@patch("rpn_to_gemlam.rpn_to_gemlam.logging", autospec=True)
+@patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset")
+@patch("rpn_to_gemlam.rpn_to_gemlam._exec_bash_func", autospec=True)
 class TestInterpolateMissingHrs:
     """Unit tests for _interpolate_missing_hrs().
     """
 
-    @patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset")
-    @patch("rpn_to_gemlam.rpn_to_gemlam._exec_bash_func", autospec=True)
-    def test_lteq_4_missing_hrs(self, m_exec_bash_func, m_open_ds):
+    def test_lteq_4_missing_hrs(self, m_exec_bash_func, m_open_ds, m_logging):
         m_open_ds().__enter__().time_counter.values = [2008911600.0]
+        m_open_ds().__enter__().attrs = {}
         missing_hrs = [
             {
                 "hr": arrow.get("2013-08-28 00:00:00"),
@@ -128,3 +130,28 @@ class TestInterpolateMissingHrs:
                 f'{Path("tmp_dir", "gemlam_y2013m08d28_001.nc")}'
             ),
         ]
+
+    @pytest.mark.parametrize(
+        "ds_attrs, expected",
+        (
+            (({"missing_variables": "solar"}, None), "previous available hour"),
+            ((None, {"missing_variables": "solar"}), "next available hour"),
+        ),
+    )
+    def test_avail_hr_ds_missing_vars(
+        self, m_exec_bash_func, m_open_ds, m_logging, ds_attrs, expected
+    ):
+        m_open_ds().__enter__().attrs.get.side_effect = ds_attrs
+        missing_hrs = [
+            {
+                "hr": arrow.get("2013-08-28 00:00:00"),
+                "ds_path": Path("tmp_dir", "gemlam_y2013m08d28_000.nc"),
+            },
+            {
+                "hr": arrow.get("2013-08-28 01:00:00"),
+                "ds_path": Path("tmp_dir", "gemlam_y2013m08d28_001.nc"),
+            },
+        ]
+        with pytest.raises(SystemExit):
+            rpn_to_gemlam._interpolate_missing_hrs(missing_hrs)
+        assert expected in m_logging.error.call_args_list[0][0][0]

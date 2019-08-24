@@ -166,6 +166,14 @@ def _interpolate_missing_hrs(missing_hrs):
         f"gemlam_{prev_nemo_date}_{prev_avail_hr.hour:03d}.nc"
     )
     with xarray.open_dataset(prev_avail_hr_path, decode_cf=False) as ds:
+        missing_vars = ds.attrs.get("missing_variables")
+        if missing_vars is not None:
+            logging.error(
+                f"this will not end well: found missing {missing_vars} variables "
+                f" in previous available hour dataset during preparation to "
+                f"interpolate missing hours: {prev_avail_hr_path}"
+            )
+            raise SystemExit(2)
         prev_avail_time_counter = int(ds.time_counter.values[0])
     next_avail_hr = missing_hrs[-1]["hr"].shift(hours=+1)
     next_nemo_date = (
@@ -174,6 +182,15 @@ def _interpolate_missing_hrs(missing_hrs):
     next_avail_hr_path = missing_hrs[0]["ds_path"].with_name(
         f"gemlam_{next_nemo_date}_{next_avail_hr.hour:03d}.nc"
     )
+    with xarray.open_dataset(next_avail_hr_path) as ds:
+        missing_vars = ds.attrs.get("missing_variables")
+        if missing_vars is not None:
+            logging.error(
+                f"this will not end well: found missing {missing_vars} variables "
+                f" in next available hour dataset during preparation to "
+                f"interpolate missing hours: {next_avail_hr_path}"
+            )
+            raise SystemExit(2)
     logging.info(
         f"interpolating missing hours between {prev_avail_hr_path} and {next_avail_hr_path}"
     )
@@ -183,9 +200,91 @@ def _interpolate_missing_hrs(missing_hrs):
         missing_hr_path = missing_hr["ds_path"].with_name(
             f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
         )
-        bash_cmd = f"interp-for-time_counter-value {time_counter} {prev_avail_hr_path} {next_avail_hr_path} {missing_hr_path}"
+        bash_cmd = (
+            f"interp-for-time_counter-value {time_counter} "
+            f"{prev_avail_hr_path} {next_avail_hr_path} {missing_hr_path}"
+        )
         _exec_bash_func(bash_cmd)
         logging.info(f"created {missing_hr_path} by interpolation")
+
+
+def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
+    """Fill in missing RPN variables by interpolation.
+
+    :param netcdf_start_date: Start date for which to calculate netCDF file from RPN files.
+    :type netcdf_start_date: :py:class:`arrow.Arrow`
+
+    :param netcdf_end_date: End date for which to calculate netCDF file from RPN files.
+    :type netcdf_end_date: :py:class:`arrow.Arrow`
+
+    :param tmp_dir: Temporary working directory for files created during processing.
+    :type tmp_dir: :py:class:`pathlib.Path`
+    """
+    hrs_range = arrow.Arrow.range(
+        "hour", netcdf_start_date.shift(days=-1), netcdf_end_date.shift(hours=+23)
+    )
+    missing_var_hrs = {}
+    for netcdf_hr in hrs_range:
+        nemo_date = f"y{netcdf_hr.year}m{netcdf_hr.month:02d}d{netcdf_hr.day:02d}"
+        nemo_hr_ds_path = tmp_dir / f"gemlam_{nemo_date}_{netcdf_hr.hour:03d}.nc"
+        with xarray.open_dataset(nemo_hr_ds_path) as ds:
+            missing_vars = ds.attrs.get("missing_variables")
+        if missing_vars is None:
+            for var, missing_hrs in missing_var_hrs.copy().items():
+                if len(missing_hrs) <= 4:
+                    raise NotImplementedError(
+                        f"missing {len(missing_hrs)}<=4 hours for variable {var}: "
+                        f"{missing_hrs}"
+                    )
+                else:
+                    _interpolate_inter_day_missing_var_hrs(var, missing_hrs)
+                    del missing_var_hrs[var]
+        else:
+            for var in missing_vars.split(", "):
+                try:
+                    missing_var_hrs[var].append(
+                        {"hr": netcdf_hr, "ds_path": nemo_hr_ds_path}
+                    )
+                except KeyError:
+                    missing_var_hrs[var] = [
+                        {"hr": netcdf_hr, "ds_path": nemo_hr_ds_path}
+                    ]
+
+
+def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
+    for missing_hr in missing_hrs:
+        prev_day_hr = missing_hr["hr"].shift(days=-1)
+        prev_nemo_date = (
+            f"y{prev_day_hr.year}m{prev_day_hr.month:02d}d{prev_day_hr.day:02d}"
+        )
+        prev_day_hr_path = missing_hr["ds_path"].with_name(
+            f"gemlam_{prev_nemo_date}_{prev_day_hr.hour:03d}.nc"
+        )
+        with xarray.open_dataset(prev_day_hr_path, decode_cf=False) as ds:
+            prev_day_time_counter = int(ds.time_counter.values[0])
+        next_day_hr = missing_hr["hr"].shift(days=+1)
+        next_nemo_date = (
+            f"y{next_day_hr.year}m{next_day_hr.month:02d}d{next_day_hr.day:02d}"
+        )
+        next_day_hr_path = missing_hrs[0]["ds_path"].with_name(
+            f"gemlam_{next_nemo_date}_{next_day_hr.hour:03d}.nc"
+        )
+        logging.info(
+            f"interpolating {var} for hour {missing_hr['hr'].hour:03d} "
+            f"across days between {prev_day_hr_path} and {next_day_hr_path}"
+        )
+        for day in range((next_day_hr - prev_day_hr).days - 1):
+            time_counter = prev_day_time_counter + (day + 1) * 86400
+            missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+            missing_hr_path = missing_hr["ds_path"].with_name(
+                f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
+            )
+            bash_cmd = (
+                f"interp-var-for-time_counter-value {var} {time_counter} "
+                f"{prev_day_hr_path} {next_day_hr_path} {missing_hr_path}"
+            )
+            _exec_bash_func(bash_cmd)
+            logging.info(f"calculated {var} for {missing_hr_path} by interpolation")
 
 
 def _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, tmp_dir):
@@ -247,32 +346,50 @@ def _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path):
         )
         qair, ilwr, rh = _calc_qair_ilwr(rpn_hr)
         u_out, v_out = _rotate_winds(rpn_hr)
-        nemo_hr = xarray.Dataset(
-            data_vars={
+        data_vars = {
+            "nav_lon": rpn_hr.nav_lon,
+            "nav_lat": rpn_hr.nav_lat,
+            # [:, 0] drops z dimension that NEMO will not tolerate
+            "qair": qair[:, 0],
+            "RH_2maboveground": rh[:, 0],
+            "therm_rad": ilwr[:, 0],
+            "u_wind": u_out[:, 0],
+            "v_wind": v_out[:, 0],
+            # "LHTFL_surface": ** needs to be calculated**,
+        }
+        nemo_rpn_vars = (
+            ("atmpres", "PN"),
+            ("percentcloud", "NT"),
+            ("PRATE_surface", "RT"),
+            ("precip", "PR"),
+            ("solar", "FB"),
+            ("tair", "TT"),
+        )
+        missing_vars = ""
+        for nemo_var, rpn_var in nemo_rpn_vars:
+            try:
                 # [:, 0] drops z dimension that NEMO will not tolerate
-                "atmpres": rpn_hr.PN[:, 0],
-                # "LHTFL_surface":   ** needs to be calculated**
-                "percentcloud": rpn_hr.NT[:, 0],
-                "PRATE_surface": rpn_hr.RT[:, 0],
-                "nav_lat": rpn_hr.nav_lat,
-                "nav_lon": rpn_hr.nav_lon,
-                "precip": rpn_hr.PR[:, 0],
-                "qair": qair[:, 0],
-                "RH_2maboveground": rh[:, 0],
-                "solar": rpn_hr.FB[:, 0],
-                "tair": rpn_hr.TT[:, 0],
-                "therm_rad": ilwr[:, 0],
-                "u_wind": u_out[:, 0],
-                "v_wind": v_out[:, 0],
-            },
-            coords=rpn_hr.coords,
-            attrs=rpn_hr.attrs,
+                data_vars.update({nemo_var: getattr(rpn_hr, rpn_var)[:, 0]})
+            except AttributeError:
+                # Variable is missing from RPN dataset, so provide a placeholder DataArray
+                # full of NaNs that we will deal with later via interpolation
+                data_vars.update(
+                    {nemo_var: xarray.DataArray(numpy.full_like(qair[:, 0], numpy.nan))}
+                )
+                missing_vars = (
+                    ", ".join((missing_vars, nemo_var)) if missing_vars else nemo_var
+                )
+                logging.warning(f"missing RPN variable {rpn_var} from {rpn_hr_ds_path}")
+        nemo_hr = xarray.Dataset(
+            data_vars=data_vars, coords=rpn_hr.coords, attrs=rpn_hr.attrs
         )
         nemo_hr.attrs["history"] += (
             f"\n{arrow.now().format('ddd MMM DD HH:mm:ss YYYY')}: "
             f"Add specific and relative humidity and incoming longwave radiation variables from "
             f"correlations"
         )
+        if missing_vars:
+            nemo_hr.attrs["missing_variables"] = missing_vars
         _add_vars_metadata(nemo_hr)
         encoding = {
             "time_counter": {
