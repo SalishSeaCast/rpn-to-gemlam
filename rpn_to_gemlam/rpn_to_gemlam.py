@@ -34,7 +34,9 @@ from salishsea_tools import viz_tools
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
-def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir):
+def rpn_to_gemlam(
+    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, tmp_dir
+):
     """Generate an atmospheric forcing file for the SalishSeaCast NEMO model
     from the ECCC 2007-2014 archival GEMLAM files produced by the experimental
     phase of the HRPDS model.
@@ -52,23 +54,35 @@ def rpn_to_gemlam(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_di
 
     :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
     :type dest_dir: :py:class:`pathlib.Path`
+
+    :param str tmp_dir: Directory to use for temporary files storage for debugging.
     """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        _rpn_hrs_to_nemo_hrs(
-            netcdf_start_date, netcdf_end_date, forecast, rpn_dir, Path(tmp_dir)
+    if tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        tmp_dir.mkdir(exist_ok=True)
+        _do_work(
+            netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir
         )
-        _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
-        _calc_solar_and_precip(
-            netcdf_start_date, netcdf_end_date, dest_dir, Path(tmp_dir)
-        )
-        days_range = arrow.Arrow.range("day", netcdf_start_date, netcdf_end_date)
-        for netcdf_date in days_range:
-            nemo_date = (
-                f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
+    else:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            _do_work(
+                netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir
             )
-            nemo_day_ds_path = dest_dir / f"gemlam_{nemo_date}.nc"
-            bash_cmd = f"cat-hrs-to-days {nemo_day_ds_path.with_suffix('')}"
-            _exec_bash_func(bash_cmd)
+
+
+def _do_work(netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir):
+    _rpn_hrs_to_nemo_hrs(
+        netcdf_start_date, netcdf_end_date, forecast, rpn_dir, Path(tmp_dir)
+    )
+    _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
+    _handle_missing_vars(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
+    _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, Path(tmp_dir))
+    days_range = arrow.Arrow.range("day", netcdf_start_date, netcdf_end_date)
+    for netcdf_date in days_range:
+        nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
+        nemo_day_ds_path = dest_dir / f"gemlam_{nemo_date}.nc"
+        bash_cmd = f"cat-hrs-to-days {nemo_day_ds_path.with_suffix('')}"
+        _exec_bash_func(bash_cmd)
 
 
 def _rpn_hrs_to_nemo_hrs(
@@ -563,6 +577,7 @@ def _exec_bash_func(bash_cmd):
 
 
 @click.command(help=rpn_to_gemlam.__doc__)
+@click.version_option()
 @click.argument("netcdf_start_date", type=click.DateTime(formats=("%Y-%m-%d",)))
 @click.argument("netcdf_end_date", type=click.DateTime(formats=("%Y-%m-%d",)))
 @click.argument("forecast", type=click.Choice(("00", "06", "12", "18")))
@@ -579,8 +594,17 @@ def _exec_bash_func(bash_cmd):
         warning, error, and critical should be silent unless something bad goes wrong.
     """,
 )
-@click.version_option()
-def cli(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, verbosity):
+@click.option(
+    "--tmp_dir",
+    default="",
+    show_default=True,
+    help="""
+        Absolute path of directory to use for temporary files storage for debugging
+    """,
+)
+def cli(
+    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, tmp_dir, verbosity
+):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
     Please see:
@@ -600,6 +624,8 @@ def cli(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, verbosi
 
     :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
     :type dest_dir: :py:class:`pathlib.Path`
+
+    :param str tmp_dir: Directory to use for temporary files storage for debugging.
 
     :param str verbosity: Verbosity level of logging messages about the progress of the
                           process.
@@ -621,4 +647,5 @@ def cli(netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, verbosi
         forecast,
         Path(rpn_dir),
         Path(dest_dir),
+        tmp_dir,
     )
