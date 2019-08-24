@@ -64,18 +64,21 @@ class TestRPN_HrsToNEMO_Hrs:
         )
 
 
-@patch("rpn_to_gemlam.rpn_to_gemlam._interpolate_missing_hrs", autospec=True)
+@patch("rpn_to_gemlam.rpn_to_gemlam._interpolate_inter_day_missing_hrs", autospec=True)
+@patch("rpn_to_gemlam.rpn_to_gemlam._interpolate_intra_day_missing_hrs", autospec=True)
 @patch("rpn_to_gemlam.rpn_to_gemlam.Path.exists", autospec=True)
 class TestHandleMissingHrFiles:
     """Unit tests for _handle_missing_hr_files().
     """
 
-    def test_lteq_4_missing_hrs(self, m_exists, m_interp_missing_hrs):
+    def test_lteq_4_missing_hrs(
+        self, m_exists, m_interp_intra_day_missing_hrs, m_interp_inter_day_missing_hrs
+    ):
         m_exists.side_effect = [True, False, False] + [True] * 45
         rpn_to_gemlam._handle_missing_hr_files(
             arrow.get("2013-08-29"), arrow.get("2013-08-29"), Path("tmp_dir")
         )
-        m_interp_missing_hrs.assert_called_once_with(
+        m_interp_intra_day_missing_hrs.assert_called_once_with(
             [
                 {
                     "hr": arrow.get("2013-08-28 01:00:00"),
@@ -88,15 +91,41 @@ class TestHandleMissingHrFiles:
             ]
         )
 
-    def test_gt_4_missing_hrs(self, m_exists, m_interp_missing_hrs):
-        m_exists.side_effect = [True] + [False] * 5 + [True] * 42
-        with pytest.raises(FileNotFoundError, match="missing >4 hours"):
-            rpn_to_gemlam._handle_missing_hr_files(
-                arrow.get("2013-08-29"), arrow.get("2013-08-29"), Path("tmp_dir")
-            )
-        assert not m_interp_missing_hrs.called
+    def test_gt_4_missing_hrs(
+        self, m_exists, m_interp_intra_day_missing_hrs, m_interp_inter_day_missing_hrs
+    ):
+        m_exists.side_effect = [True] * 24 + [False] * 5 + [True] * 19
+        rpn_to_gemlam._handle_missing_hr_files(
+            arrow.get("2007-02-01"), arrow.get("2007-02-01"), Path("tmp_dir")
+        )
+        m_interp_inter_day_missing_hrs.assert_called_once_with(
+            [
+                {
+                    "hr": arrow.get("2007-02-01 00:00:00"),
+                    "ds_path": Path("tmp_dir", "gemlam_y2007m02d01_000.nc"),
+                },
+                {
+                    "hr": arrow.get("2007-02-01 01:00:00"),
+                    "ds_path": Path("tmp_dir", "gemlam_y2007m02d01_001.nc"),
+                },
+                {
+                    "hr": arrow.get("2007-02-01 02:00:00"),
+                    "ds_path": Path("tmp_dir", "gemlam_y2007m02d01_002.nc"),
+                },
+                {
+                    "hr": arrow.get("2007-02-01 03:00:00"),
+                    "ds_path": Path("tmp_dir", "gemlam_y2007m02d01_003.nc"),
+                },
+                {
+                    "hr": arrow.get("2007-02-01 04:00:00"),
+                    "ds_path": Path("tmp_dir", "gemlam_y2007m02d01_004.nc"),
+                },
+            ]
+        )
 
-    def test_missing_hrs_at_end_of_date_range(self, m_exists, m_interp_missing_hrs):
+    def test_missing_hrs_at_end_of_date_range(
+        self, m_exists, m_interp_intra_day_missing_hrs, m_interp_inter_day_missing_hrs
+    ):
         m_exists.side_effect = [True] * 36 + [False] * 12
         with pytest.raises(
             FileNotFoundError, match="missing hours at end of date range"
@@ -110,7 +139,7 @@ class TestHandleMissingHrFiles:
 @patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset")
 @patch("rpn_to_gemlam.rpn_to_gemlam._exec_bash_func", autospec=True)
 class TestInterpolateMissingHrs:
-    """Unit tests for _interpolate_missing_hrs().
+    """Unit tests for _interpolate_intra_day_missing_hrs().
     """
 
     def test_lteq_4_missing_hrs(self, m_exec_bash_func, m_open_ds, m_logging):
@@ -126,7 +155,7 @@ class TestInterpolateMissingHrs:
                 "ds_path": Path("tmp_dir", "gemlam_y2013m08d28_001.nc"),
             },
         ]
-        rpn_to_gemlam._interpolate_missing_hrs(missing_hrs)
+        rpn_to_gemlam._interpolate_intra_day_missing_hrs(missing_hrs)
         assert m_exec_bash_func.call_args_list == [
             call(
                 f'interp-for-time_counter-value 2008915200 {Path("tmp_dir", "gemlam_y2013m08d27_023.nc")} '
@@ -162,5 +191,5 @@ class TestInterpolateMissingHrs:
             },
         ]
         with pytest.raises(SystemExit):
-            rpn_to_gemlam._interpolate_missing_hrs(missing_hrs)
+            rpn_to_gemlam._interpolate_intra_day_missing_hrs(missing_hrs)
         assert expected in m_logging.error.call_args_list[0][0][0]
