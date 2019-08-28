@@ -43,6 +43,7 @@ def rpn_to_gemlam(
     dest_dir,
     tmp_dir,
     keep_rpn_fcst_hr_files,
+    bunzip2_rpn_fcst_hr_files,
 ):
     """Generate an atmospheric forcing file for the SalishSeaCast NEMO model
     from the ECCC 2007-2014 archival GEMLAM files produced by the experimental
@@ -69,6 +70,12 @@ def rpn_to_gemlam(
                                    *This is a debugging option that is only useful in
                                    combination with the :kbd:`--tmp_dir` command-line option.*
     :type keep_rpn_fcst_hr_files: boolean
+
+    :param bunzip2_rpn_fcst_hr_files: Uncompress RPN forecast hour files with :command:`bzip2 -d`.
+                                      *This is a debugging option that is only useful in
+                                      combination with the :kbd:`--tmp_dir` command-line option,
+                                      and after having run with :kbd:`--keep-rpn-fcst-hr-files`.*
+    :type bunzip2_rpn_fcst_hr_files: boolean
     """
     if tmp_dir:
         tmp_dir = Path(tmp_dir)
@@ -81,6 +88,7 @@ def rpn_to_gemlam(
             dest_dir,
             tmp_dir,
             keep_rpn_fcst_hr_files,
+            bunzip2_rpn_fcst_hr_files,
         )
     else:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -103,6 +111,7 @@ def _do_work(
     dest_dir,
     tmp_dir,
     keep_rpn_fcst_hr_files,
+    bunzip2_rpn_fcst_hr_files,
 ):
     _rpn_hrs_to_nemo_hrs(
         netcdf_start_date,
@@ -111,6 +120,7 @@ def _do_work(
         rpn_dir,
         Path(tmp_dir),
         keep_rpn_fcst_hr_files,
+        bunzip2_rpn_fcst_hr_files,
     )
     _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
     _handle_missing_vars(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
@@ -130,6 +140,7 @@ def _rpn_hrs_to_nemo_hrs(
     rpn_dir,
     tmp_dir,
     keep_rpn_fcst_hr_files,
+    bunzip2_rpn_fcst_hr_files,
 ):
     """Create hour forecast files containing NEMO/FVCOM variables from RPN files.
 
@@ -152,6 +163,12 @@ def _rpn_hrs_to_nemo_hrs(
                                    *This is a debugging option that is only useful in
                                    combination with the :kbd:`--tmp_dir` command-line option.*
     :type keep_rpn_fcst_hr_files: boolean
+
+    :param bunzip2_rpn_fcst_hr_files: Uncompress RPN forecast hour files with :command:`bzip2 -d`.
+                                      *This is a debugging option that is only useful in
+                                      combination with the :kbd:`--tmp_dir` command-line option,
+                                      and after having run with :kbd:`--keep-rpn-fcst-hr-files`.*
+    :type bunzip2_rpn_fcst_hr_files: boolean
     """
     days_range = arrow.Arrow.range(
         "day", netcdf_start_date.shift(days=-1), netcdf_end_date
@@ -159,7 +176,7 @@ def _rpn_hrs_to_nemo_hrs(
     for netcdf_date in days_range:
         bash_cmd = (
             f"rpn-netcdf {forecast} {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} "
-            f"{keep_rpn_fcst_hr_files}"
+            f"{keep_rpn_fcst_hr_files} {bunzip2_rpn_fcst_hr_files}"
         )
         _exec_bash_func(bash_cmd)
         nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
@@ -704,6 +721,16 @@ def _exec_bash_func(bash_cmd):
         command-line option.*
     """,
 )
+@click.option(
+    "--bunzip2-rpn-fcst-hr-files/--no-bunzip2-rpn-fcst-hr-files",
+    default=True,
+    show_default=True,
+    help="""
+        Uncompress RPN forecast hour files with :command:`bzip2 -d`. *This is a debugging 
+        option that is only useful in combination with the :kbd:`--tmp_dir` command-line 
+        option, and after having run with :kbd:`--keep-rpn-fcst-hr-files`.*
+    """,
+)
 def cli(
     netcdf_start_date,
     netcdf_end_date,
@@ -713,6 +740,7 @@ def cli(
     verbosity,
     tmp_dir,
     keep_rpn_fcst_hr_files,
+    bunzip2_rpn_fcst_hr_files,
 ):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
@@ -748,6 +776,12 @@ def cli(
                                    *This is a debugging option that is only useful in
                                    combination with the :kbd:`--tmp_dir` command-line option.*
     :type keep_rpn_fcst_hr_files: boolean
+
+    :param bunzip2_rpn_fcst_hr_files: Uncompress RPN forecast hour files with :command:`bzip2 -d`.
+                                      *This is a debugging option that is only useful in
+                                      combination with the :kbd:`--tmp_dir` command-line option,
+                                      and after having run with :kbd:`--keep-rpn-fcst-hr-files`.*
+    :type bunzip2_rpn_fcst_hr_files: boolean
     """
     logging_level = getattr(logging, verbosity.upper())
     logging.basicConfig(
@@ -764,4 +798,5 @@ def cli(
         Path(dest_dir),
         tmp_dir,
         keep_rpn_fcst_hr_files,
+        bunzip2_rpn_fcst_hr_files,
     )
