@@ -387,6 +387,8 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
                     missing_var_hrs[var] = [
                         {"hr": netcdf_hr, "ds_path": nemo_hr_ds_path}
                     ]
+    if missing_var_hrs:
+        raise ValueError(f"missing variables at end of date range: {missing_var_hrs}")
 
 
 def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
