@@ -36,7 +36,13 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def rpn_to_gemlam(
-    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, tmp_dir
+    netcdf_start_date,
+    netcdf_end_date,
+    forecast,
+    rpn_dir,
+    dest_dir,
+    tmp_dir,
+    keep_rpn_fcst_hr_files,
 ):
     """Generate an atmospheric forcing file for the SalishSeaCast NEMO model
     from the ECCC 2007-2014 archival GEMLAM files produced by the experimental
@@ -57,23 +63,54 @@ def rpn_to_gemlam(
     :type dest_dir: :py:class:`pathlib.Path`
 
     :param str tmp_dir: Directory to use for temporary files storage for debugging.
+
+    :param keep_rpn_fcst_hr_files: Don't delete the uncompressed RPN forecast hour files
+                                   from :command:`bzip2 -d`.
+                                   *This is a debugging option that is only useful in
+                                   combination with the :kbd:`--tmp_dir` command-line option.*
+    :type keep_rpn_fcst_hr_files: boolean
     """
     if tmp_dir:
         tmp_dir = Path(tmp_dir)
         tmp_dir.mkdir(exist_ok=True)
         _do_work(
-            netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir
+            netcdf_end_date,
+            netcdf_start_date,
+            forecast,
+            rpn_dir,
+            dest_dir,
+            tmp_dir,
+            keep_rpn_fcst_hr_files,
         )
     else:
         with tempfile.TemporaryDirectory() as tmp_dir:
             _do_work(
-                netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir
+                netcdf_end_date,
+                netcdf_start_date,
+                forecast,
+                rpn_dir,
+                dest_dir,
+                tmp_dir,
+                keep_rpn_fcst_hr_files,
             )
 
 
-def _do_work(netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tmp_dir):
+def _do_work(
+    netcdf_end_date,
+    netcdf_start_date,
+    forecast,
+    rpn_dir,
+    dest_dir,
+    tmp_dir,
+    keep_rpn_fcst_hr_files,
+):
     _rpn_hrs_to_nemo_hrs(
-        netcdf_start_date, netcdf_end_date, forecast, rpn_dir, Path(tmp_dir)
+        netcdf_start_date,
+        netcdf_end_date,
+        forecast,
+        rpn_dir,
+        Path(tmp_dir),
+        keep_rpn_fcst_hr_files,
     )
     _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
     _handle_missing_vars(netcdf_start_date, netcdf_end_date, Path(tmp_dir))
@@ -87,7 +124,12 @@ def _do_work(netcdf_end_date, netcdf_start_date, forecast, rpn_dir, dest_dir, tm
 
 
 def _rpn_hrs_to_nemo_hrs(
-    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, tmp_dir
+    netcdf_start_date,
+    netcdf_end_date,
+    forecast,
+    rpn_dir,
+    tmp_dir,
+    keep_rpn_fcst_hr_files,
 ):
     """Create hour forecast files containing NEMO/FVCOM variables from RPN files.
 
@@ -104,12 +146,21 @@ def _rpn_hrs_to_nemo_hrs(
 
     :param tmp_dir: Temporary working directory for files created during processing.
     :type tmp_dir: :py:class:`pathlib.Path`
+
+    :param keep_rpn_fcst_hr_files: Don't delete the uncompressed RPN forecast hour files
+                                   from :command:`bzip2 -d`.
+                                   *This is a debugging option that is only useful in
+                                   combination with the :kbd:`--tmp_dir` command-line option.*
+    :type keep_rpn_fcst_hr_files: boolean
     """
     days_range = arrow.Arrow.range(
         "day", netcdf_start_date.shift(days=-1), netcdf_end_date
     )
     for netcdf_date in days_range:
-        bash_cmd = f"rpn-netcdf {forecast} {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir}"
+        bash_cmd = (
+            f"rpn-netcdf {forecast} {netcdf_date.format('YYYY-MM-DD')} {rpn_dir} {tmp_dir} "
+            f"{keep_rpn_fcst_hr_files}"
+        )
         _exec_bash_func(bash_cmd)
         nemo_date = f"y{netcdf_date.year}m{netcdf_date.month:02d}d{netcdf_date.day:02d}"
         for hr in range(24 - int(forecast), 25):
@@ -643,8 +694,25 @@ def _exec_bash_func(bash_cmd):
         Absolute path of directory to use for temporary files storage for debugging
     """,
 )
+@click.option(
+    "--keep-rpn-fcst-hr-files/--no-keep-rpn-fcst-hr-files",
+    default=False,
+    show_default=True,
+    help="""
+        Don't delete the uncompressed RPN forecast hour files from :command:`bzip2 -d`. *This 
+        is a debugging option that is only useful in combination with the :kbd:`--tmp_dir` 
+        command-line option.*
+    """,
+)
 def cli(
-    netcdf_start_date, netcdf_end_date, forecast, rpn_dir, dest_dir, tmp_dir, verbosity
+    netcdf_start_date,
+    netcdf_end_date,
+    forecast,
+    rpn_dir,
+    dest_dir,
+    verbosity,
+    tmp_dir,
+    keep_rpn_fcst_hr_files,
 ):
     """Command-line interface for :py:func:`rpn_to_gemlam.rpn_to_gemlam`.
 
@@ -666,14 +734,20 @@ def cli(
     :param dest_dir: Directory in which to store GEMLAM netCDF file calculated from RPN files.
     :type dest_dir: :py:class:`pathlib.Path`
 
-    :param str tmp_dir: Directory to use for temporary files storage for debugging.
-
     :param str verbosity: Verbosity level of logging messages about the progress of the
                           process.
                           Choices are :kbd:`debug, info, warning, error, critical`.
                           :kbd:`warning`, :kbd:`error`, and :kbd:`critical` should be silent
                           unless something bad goes wrong.
                           Default is :kbd:`warning`.
+
+    :param str tmp_dir: Directory to use for temporary files storage for debugging.
+
+    :param keep_rpn_fcst_hr_files: Don't delete the uncompressed RPN forecast hour files
+                                   from :command:`bzip2 -d`.
+                                   *This is a debugging option that is only useful in
+                                   combination with the :kbd:`--tmp_dir` command-line option.*
+    :type keep_rpn_fcst_hr_files: boolean
     """
     logging_level = getattr(logging, verbosity.upper())
     logging.basicConfig(
@@ -689,4 +763,5 @@ def cli(
         Path(rpn_dir),
         Path(dest_dir),
         tmp_dir,
+        keep_rpn_fcst_hr_files,
     )

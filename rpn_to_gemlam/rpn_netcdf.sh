@@ -25,6 +25,7 @@ _rpn-netcdf-hour () {
   yr=$(date --date="${day}" +%Y)
   rpn_dir=$4
   tmp_dir=$5
+  keep_rpn_fcst_hr_files=$6
 
   # decompress GEMLAM RPN forecast hour file
   /bin/bzip2 -c -k -d \
@@ -46,8 +47,11 @@ _rpn-netcdf-hour () {
      -nomv ${var} -ip1 12000
   done
 
-  # delete GEMLAM RPN forecast hour file
-  /bin/rm -f ${tmp_dir}/${day}${forecast}_${hr}
+  if [ ${keep_rpn_fcst_hr_files} = False  ]
+  then
+    # delete GEMLAM RPN forecast hour file
+    /bin/rm -f ${tmp_dir}/${day}${forecast}_${hr}
+  fi
 
   # append single variable files into a single file for the hour
   for var in FB NT PN PR RN RT TD TT UU VV
@@ -92,51 +96,52 @@ rpn-netcdf () {
   netcdf_date=$2
   rpn_dir=$3
   tmp_dir=$4
+  keep_rpn_fcst_hr_files=$5
 
   case ${forecast} in
   00)
     daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
-    _rpn-netcdf-hour ${forecast} ${daym1} 024 ${rpn_dir} ${tmp_dir}
+    _rpn-netcdf-hour ${forecast} ${daym1} 024 ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     day=$(date --date="${netcdf_date}" +%Y%m%d)
     for hr in {001..023}
     do
-      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     ;;
   06)
     daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
     for hr in {018..024}
     do
-      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     day=$(date --date="${netcdf_date}" +%Y%m%d)
     for hr in {001..017}
     do
-      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     ;;
   12)
     daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
     for hr in {012..024}
     do
-      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     day=$(date --date="${netcdf_date}" +%Y%m%d)
     for hr in {001..011}
     do
-      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     ;;
   18)
     daym1=$(date --date="${netcdf_date} -1 day" +%Y%m%d)
     for hr in {006..024}
     do
-      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${daym1} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     day=$(date --date="${netcdf_date}" +%Y%m%d)
     for hr in {001..005}
     do
-      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir}
+      _rpn-netcdf-hour ${forecast} ${day} ${hr} ${rpn_dir} ${tmp_dir} ${keep_rpn_fcst_hr_files}
     done
     ;;
 esac
