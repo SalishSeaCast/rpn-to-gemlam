@@ -140,7 +140,7 @@ class TestHandleMissingHrFiles:
 
 
 @patch("rpn_to_gemlam.rpn_to_gemlam.logging", autospec=True)
-@patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset")
+@patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset", spec=True)
 @patch("rpn_to_gemlam.rpn_to_gemlam._exec_bash_func", autospec=True)
 class TestInterpolateMissingHrs:
     """Unit tests for _interpolate_intra_day_missing_hrs().
@@ -197,3 +197,21 @@ class TestInterpolateMissingHrs:
         with pytest.raises(SystemExit):
             rpn_to_gemlam._interpolate_intra_day_missing_hrs(missing_hrs)
         assert expected in m_logging.error.call_args_list[0][0][0]
+
+
+@patch(
+    "rpn_to_gemlam.rpn_to_gemlam._interpolate_inter_day_missing_var_hrs", autospec=True
+)
+@patch("rpn_to_gemlam.rpn_to_gemlam.xarray.open_dataset", spec=True)
+class TestHandleMissingVars:
+    """Unit tests for _handle_missing_vars().
+    """
+
+    def test_missing_vars_at_end_of_date_range(
+        self, m_open_ds, m_interp_inter_day_missing_var_hrs
+    ):
+        m_open_ds().__enter__().attrs = {"missing_variables": "solar"}
+        with pytest.raises(ValueError, match="missing variables at end of date range"):
+            rpn_to_gemlam._handle_missing_vars(
+                arrow.get("2007-02-15"), arrow.get("2007-02-15"), Path("tmp_dir")
+            )
