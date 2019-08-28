@@ -37,11 +37,12 @@ class TestRPN_HrsToNEMO_Hrs:
             forecast,
             Path("rpn_dir"),
             Path("tmp_dir"),
-            False,
+            keep_rpn_fcst_hr_files=False,
+            bunzip2_rpn_fcst_hr_files=True,
         )
         assert m_exec_bash_func.call_args_list == [
-            call(f"rpn-netcdf {forecast} 2006-12-31 rpn_dir tmp_dir False"),
-            call(f"rpn-netcdf {forecast} 2007-01-01 rpn_dir tmp_dir False"),
+            call(f"rpn-netcdf {forecast} 2006-12-31 rpn_dir tmp_dir False True"),
+            call(f"rpn-netcdf {forecast} 2007-01-01 rpn_dir tmp_dir False True"),
         ]
 
     def test_write_nemo_hr_file_calls(
@@ -53,7 +54,8 @@ class TestRPN_HrsToNEMO_Hrs:
             forecast,
             Path("rpn_dir"),
             Path("tmp_dir"),
-            False,
+            keep_rpn_fcst_hr_files=False,
+            bunzip2_rpn_fcst_hr_files=True,
         )
         assert m_write_nemo_hr_file.call_count == 50
         assert m_write_nemo_hr_file.call_args_list[0] == call(
