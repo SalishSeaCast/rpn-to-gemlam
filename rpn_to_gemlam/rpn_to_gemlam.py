@@ -100,6 +100,7 @@ def rpn_to_gemlam(
                 dest_dir,
                 tmp_dir,
                 keep_rpn_fcst_hr_files,
+                bunzip2_rpn_fcst_hr_files,
             )
 
 
@@ -387,6 +388,34 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
                     missing_var_hrs[var] = [
                         {"hr": netcdf_hr, "ds_path": nemo_hr_ds_path}
                     ]
+    for missing_hr in missing_var_hrs["solar"].copy():
+        # Special handling for 1feb07 to 23feb07 period in which there are no solar radiation values
+        in_feb07_solar_gap = missing_hr["hr"].is_between(
+            arrow.get("2007-02-01"), arrow.get("2007-02-24"), bounds="[)"
+        )
+        if not in_feb07_solar_gap:
+            break
+        # Calculate solar radiation from cloud fraction and time of day sun angle
+        solar = _calc_solar_from_clouds_and_angle(
+            missing_hr["hr"], missing_hr["ds_path"]
+        )
+        solar = solar.astype("float32", casting="same_kind")
+        solar.attrs["level"] = "surface"
+        solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
+        solar.attrs["standard_name"] = "net_downward_shortwave_flux_in_air"
+        solar.attrs["units"] = "W/m^2"
+        with xarray.open_dataset(missing_hr["ds_path"]) as ds:
+            ds_w_solar = ds.copy(deep=True).assign(solar=solar)
+        missing_vars = ds_w_solar.attrs["missing_variables"].split(", ")
+        missing_vars.remove("solar")
+        if missing_vars:
+            ds_w_solar.attrs["missing_variables"] = ", ".join(missing_vars)
+        else:
+            del ds_w_solar.attrs["missing_variables"]
+        _write_netcdf_file(ds_w_solar, missing_hr["ds_path"])
+        missing_var_hrs["solar"].remove(missing_hr)
+        if not missing_var_hrs["solar"]:
+            del missing_var_hrs["solar"]
     if missing_var_hrs:
         raise ValueError(f"missing variables at end of date range: {missing_var_hrs}")
 
@@ -410,6 +439,100 @@ def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
             )
             _exec_bash_func(bash_cmd)
             logging.info(f"calculated {var} for {missing_hr_path} by interpolation")
+
+
+def _calc_solar_from_clouds_and_angle(hr, ds_path):
+    """Calculate solar radiation from cloud fraction and time of day sun angle.
+    """
+    # Solar radiation [W/m^2] incident on top of atmosphere
+    Q_o = 1368.0
+    # Cloud model based on Dobson and Smith, table 5
+    #   SEA -- May 2010 : redid the cloud parametrization based on UBC
+    #   Solar data (/ocean/shared/SoG/met/solar/) fitting Q to cos_Z
+    #   (not Q/cos_Z as Kate did).  Allen and Wolfe (2013).  (0) no
+    #   clouds, (1) 1/10 cloud fraction (10) 100% clouds.  Four sig
+    #   figs are what comes out of matlab but standard deviations are
+    #   40W/m2 for low cloud fraction to 120 W/m2 for 6-9 cloud
+    #   fraction to 85 W/m2 for completely cloudy.
+    cloud_consts = SimpleNamespace(
+        A=numpy.array(
+            [
+                0.6337,
+                0.6149,
+                0.5861,
+                0.5512,
+                0.5002,
+                0.4649,
+                0.4225,
+                0.3669,
+                0.2468,
+                0.1981,
+                0.0841,
+            ]
+        ),
+        B=numpy.array(
+            [
+                0.1959,
+                0.2119,
+                0.2400,
+                0.2859,
+                0.3192,
+                0.3356,
+                0.3339,
+                0.3490,
+                0.4427,
+                0.3116,
+                0.2283,
+            ]
+        ),
+    )
+    # Local standard time
+    ## WARNING: .to("PST") may be fragile and incorrect for summer-time dates
+    lst = hr.to("PST")
+    # day_time is in seconds, LST
+    day_time = (lst - lst.floor("day")).seconds
+    # hour of day as degrees from noon
+    hour = (day_time / 3600 - 12) * 15
+    # day is year-day
+    day = (lst - lst.floor("year")).days
+    # solar declination [radians]
+    declination = (
+        23.45 * numpy.pi / 180 * numpy.sin((284 + day) / 365.25 * 2 * numpy.pi)
+    )
+    # Latitude of approximate centre of model domain in radians
+    lat = numpy.pi * 50 / 180
+    # solar elevation
+    elev_sin = numpy.sin(declination) * numpy.sin(lat)
+    elev_cos = numpy.cos(declination) * numpy.cos(lat)
+    cos_Z = elev_sin + elev_cos * numpy.cos(numpy.pi / 180 * hour)
+    # cos of -hour_angle in radians
+    hour_angle = numpy.tan(lat) * numpy.tan(declination)
+    # assume we are south of the Arctic Circle
+    day_length = numpy.arccos(-hour_angle) / 15 * 2 * 180 / numpy.pi
+    sunrise = 12 - 0.5 * day_length  # hours
+    sunset = 12 + 0.5 * day_length  # hours
+    Qso = Q_o * (1 + 0.033 * numpy.cos(day / 365.25 * 2 * numpy.pi))
+    with xarray.open_dataset(ds_path) as ds:
+        cf_value = ds.percentcloud * 10
+        fcf = numpy.floor(cf_value).astype(int)  # integer below cf value
+        fcf = xarray.where(fcf == 10, 9, fcf).data
+        ccf = fcf + 1  # integer above cf value
+        if (sunrise > day_time / 3600) or (day_time / 3600 > sunset):
+            # nighttime
+            return xarray.zeros_like(ds.percentcloud)
+        return (
+            Qso
+            * (
+                cloud_consts.A[fcf] * (ccf - cf_value)
+                + cloud_consts.A[ccf] * (cf_value - fcf)
+                + (
+                    cloud_consts.B[fcf] * (ccf - cf_value)
+                    + cloud_consts.B[ccf] * (cf_value - fcf)
+                )
+                * cos_Z
+            )
+            * cos_Z
+        )
 
 
 def _calc_solar_and_precip(netcdf_start_date, netcdf_end_date, dest_dir, tmp_dir):
@@ -516,15 +639,14 @@ def _write_nemo_hr_file(rpn_hr_ds_path, nemo_hr_ds_path):
         if missing_vars:
             nemo_hr.attrs["missing_variables"] = missing_vars
         _add_vars_metadata(nemo_hr)
-        encoding = {
-            "time_counter": {
-                "dtype": "float",
-                "units": "seconds since 1950-01-01 00:00:00",
-            }
-        }
-        nemo_hr.to_netcdf(
-            nemo_hr_ds_path, encoding=encoding, unlimited_dims=("time_counter",)
-        )
+        _write_netcdf_file(nemo_hr, nemo_hr_ds_path)
+
+
+def _write_netcdf_file(dataset, dataset_path):
+    encoding = {
+        "time_counter": {"dtype": "float", "units": "seconds since 1950-01-01 00:00:00"}
+    }
+    dataset.to_netcdf(dataset_path, encoding=encoding, unlimited_dims=("time_counter",))
 
 
 def _calc_qair_ilwr(rpn_hr):
