@@ -388,7 +388,7 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
                     missing_var_hrs[var] = [
                         {"hr": netcdf_hr, "ds_path": nemo_hr_ds_path}
                     ]
-    for missing_hr in missing_var_hrs["solar"].copy():
+    for missing_hr in missing_var_hrs.get("solar", []).copy():
         # Special handling for 1feb07 to 23feb07 period in which there are no solar radiation values
         in_feb07_solar_gap = missing_hr["hr"].is_between(
             arrow.get("2007-02-01"), arrow.get("2007-02-24"), bounds="[)"
@@ -414,7 +414,8 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
             del ds_w_solar.attrs["missing_variables"]
         _write_netcdf_file(ds_w_solar, missing_hr["ds_path"])
         missing_var_hrs["solar"].remove(missing_hr)
-        if not missing_var_hrs["solar"]:
+    else:
+        if "solar" in missing_var_hrs and not missing_var_hrs["solar"]:
             del missing_var_hrs["solar"]
     if missing_var_hrs:
         raise ValueError(f"missing variables at end of date range: {missing_var_hrs}")
