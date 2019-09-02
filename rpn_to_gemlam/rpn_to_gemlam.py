@@ -245,6 +245,26 @@ def _handle_missing_hr_files(netcdf_start_date, netcdf_end_date, tmp_dir):
 
 
 def _interpolate_intra_day_missing_hrs(missing_hrs):
+    interp_info = _calc_intra_day_interp_info(missing_hrs)
+    logging.info(
+        f"interpolating missing hours between "
+        f"{interp_info.prev_avail_hr_path} and {interp_info.next_avail_hr_path}"
+    )
+    for hrs, missing_hr in enumerate(missing_hrs, start=1):
+        time_counter = interp_info.prev_avail_time_counter + hrs * 3600
+        missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+        missing_hr_path = missing_hr["ds_path"].with_name(
+            f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
+        )
+        bash_cmd = (
+            f"interp-for-time_counter-value {time_counter} "
+            f"{interp_info.prev_avail_hr_path} {interp_info.next_avail_hr_path} {missing_hr_path}"
+        )
+        _exec_bash_func(bash_cmd)
+        logging.info(f"created {missing_hr_path} by interpolation")
+
+
+def _calc_intra_day_interp_info(missing_hrs):
     prev_avail_hr = missing_hrs[0]["hr"].shift(hours=-1)
     prev_nemo_date = (
         f"y{prev_avail_hr.year}m{prev_avail_hr.month:02d}d{prev_avail_hr.day:02d}"
@@ -257,7 +277,7 @@ def _interpolate_intra_day_missing_hrs(missing_hrs):
         if missing_vars is not None:
             logging.error(
                 f"this will not end well: found missing {missing_vars} variables "
-                f" in previous available hour dataset during preparation to "
+                f"in previous available hour dataset during preparation to "
                 f"interpolate missing hours: {prev_avail_hr_path}"
             )
             raise SystemExit(2)
@@ -274,30 +294,20 @@ def _interpolate_intra_day_missing_hrs(missing_hrs):
         if missing_vars is not None:
             logging.error(
                 f"this will not end well: found missing {missing_vars} variables "
-                f" in next available hour dataset during preparation to "
+                f"in next available hour dataset during preparation to "
                 f"interpolate missing hours: {next_avail_hr_path}"
             )
             raise SystemExit(2)
-    logging.info(
-        f"interpolating missing hours between {prev_avail_hr_path} and {next_avail_hr_path}"
+    return SimpleNamespace(
+        prev_avail_hr_path=prev_avail_hr_path,
+        prev_avail_time_counter=prev_avail_time_counter,
+        next_avail_hr_path=next_avail_hr_path,
     )
-    for hrs, missing_hr in enumerate(missing_hrs, start=1):
-        time_counter = prev_avail_time_counter + hrs * 3600
-        missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
-        missing_hr_path = missing_hr["ds_path"].with_name(
-            f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
-        )
-        bash_cmd = (
-            f"interp-for-time_counter-value {time_counter} "
-            f"{prev_avail_hr_path} {next_avail_hr_path} {missing_hr_path}"
-        )
-        _exec_bash_func(bash_cmd)
-        logging.info(f"created {missing_hr_path} by interpolation")
 
 
 def _interpolate_inter_day_missing_hrs(missing_hrs):
     for missing_hr in missing_hrs:
-        interp_info = _calc_interp_info(missing_hr)
+        interp_info = _calc_inter_day_interp_info(missing_hr)
         logging.info(
             f"interpolating for hour {missing_hr['hr'].hour:03d} "
             f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
@@ -316,7 +326,7 @@ def _interpolate_inter_day_missing_hrs(missing_hrs):
             logging.info(f"calculated {missing_hr_path} by interpolation")
 
 
-def _calc_interp_info(missing_hr):
+def _calc_inter_day_interp_info(missing_hr):
     prev_day_hr = missing_hr["hr"].shift(days=-1)
     prev_nemo_date = (
         f"y{prev_day_hr.year}m{prev_day_hr.month:02d}d{prev_day_hr.day:02d}"
@@ -371,10 +381,8 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
         if missing_vars is None:
             for var, missing_hrs in missing_var_hrs.copy().items():
                 if len(missing_hrs) <= 4:
-                    raise NotImplementedError(
-                        f"missing {len(missing_hrs)}<=4 hours for variable {var}: "
-                        f"{missing_hrs}"
-                    )
+                    _interpolate_intra_day_missing_var_hrs(var, missing_hrs)
+                    del missing_var_hrs[var]
                 else:
                     _interpolate_inter_day_missing_var_hrs(var, missing_hrs)
                     del missing_var_hrs[var]
@@ -421,9 +429,29 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
         raise ValueError(f"missing variables at end of date range: {missing_var_hrs}")
 
 
+def _interpolate_intra_day_missing_var_hrs(var, missing_hrs):
+    interp_info = _calc_intra_day_interp_info(missing_hrs)
+    logging.info(
+        f"interpolating {var} for missing hour(s) between "
+        f"{interp_info.prev_avail_hr_path} and {interp_info.next_avail_hr_path}"
+    )
+    for hrs, missing_hr in enumerate(missing_hrs, start=1):
+        time_counter = interp_info.prev_avail_time_counter + hrs * 3600
+        missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+        missing_hr_path = missing_hr["ds_path"].with_name(
+            f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
+        )
+        bash_cmd = (
+            f"interp-var-for-time_counter-value {var} {time_counter} "
+            f"{interp_info.prev_avail_hr_path} {interp_info.next_avail_hr_path} {missing_hr_path}"
+        )
+        _exec_bash_func(bash_cmd)
+        logging.info(f"calculated {var} for {missing_hr_path} by interpolation")
+
+
 def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
     for missing_hr in missing_hrs:
-        interp_info = _calc_interp_info(missing_hr)
+        interp_info = _calc_inter_day_interp_info(missing_hr)
         logging.info(
             f"interpolating {var} for hour {missing_hr['hr'].hour:03d} "
             f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
