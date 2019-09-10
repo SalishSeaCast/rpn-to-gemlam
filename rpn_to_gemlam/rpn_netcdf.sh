@@ -238,4 +238,5 @@ interp-var-for-time_counter-value () {
     ${prev_avail_hr_file} ${next_avail_hr_file} ${var}.nc
   /usr/bin/ncks -A -v ${var} ${var}.nc ${missing_hr_file}
   /usr/bin/ncatted -a missing_variables,global,d,, ${missing_hr_file}
+  /bin/rm ${var}.nc
 }
