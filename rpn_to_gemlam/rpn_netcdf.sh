@@ -235,9 +235,8 @@ interp-var-for-time_counter-value () {
   missing_hr_file=$5
 
   /usr/bin/ncflint -4 -O -i time_counter,${time_counter_value} -v ${var} \
-    ${prev_avail_hr_file} ${next_avail_hr_file} ${var}.nc
+    ${prev_avail_hr_file} ${next_avail_hr_file} /dev/shm/${var}.nc
   /usr/bin/ncks -4 -O -x -v ${var} ${missing_hr_file} ${missing_hr_file}
-  /usr/bin/ncks -4 -A -v ${var} ${var}.nc ${missing_hr_file}
+  /usr/bin/ncks -4 -A -v ${var} /dev/shm/${var}.nc ${missing_hr_file}
   /usr/bin/ncatted -a missing_variables,global,d,, ${missing_hr_file}
-  /bin/rm ${var}.nc
 }
