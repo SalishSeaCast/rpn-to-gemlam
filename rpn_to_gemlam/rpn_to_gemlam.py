@@ -408,6 +408,7 @@ def _handle_missing_vars(netcdf_start_date, netcdf_end_date, tmp_dir):
             missing_hr["hr"], missing_hr["ds_path"]
         )
         solar = solar.astype("float32", casting="same_kind")
+        solar.name = "solar"
         solar.attrs["level"] = "surface"
         solar.attrs["long_name"] = "Downward Short-Wave Radiation Flux"
         solar.attrs["standard_name"] = "net_downward_shortwave_flux_in_air"
