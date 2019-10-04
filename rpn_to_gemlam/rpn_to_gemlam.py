@@ -307,14 +307,17 @@ def _calc_intra_day_interp_info(missing_hrs):
 
 def _interpolate_inter_day_missing_hrs(missing_hrs):
     for missing_hr in missing_hrs:
-        interp_info = _calc_inter_day_interp_info(missing_hr)
+        interp_info = _calc_inter_day_interp_info(missing_hr, missing_hrs)
         logging.info(
             f"interpolating for hour {missing_hr['hr'].hour:03d} "
             f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
         )
         for day in range((interp_info.next_day_hr - interp_info.prev_day_hr).days - 1):
             time_counter = interp_info.prev_day_time_counter + (day + 1) * 86400
-            missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+            missing_date = missing_hr["hr"].floor("day").shift(days=+day)
+            missing_nemo_date = (
+                f"y{missing_date.year}m{missing_date.month:02d}d{missing_date.day:02d}"
+            )
             missing_hr_path = missing_hr["ds_path"].with_name(
                 f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
             )
@@ -326,8 +329,10 @@ def _interpolate_inter_day_missing_hrs(missing_hrs):
             logging.info(f"calculated {missing_hr_path} by interpolation")
 
 
-def _calc_inter_day_interp_info(missing_hr):
-    prev_day_hr = missing_hr["hr"].shift(days=-1)
+def _calc_inter_day_interp_info(missing_hr, missing_hrs):
+    prev_day_hr = (
+        missing_hrs[0]["hr"].floor("day").shift(days=-1, hours=+missing_hr["hr"].hour)
+    )
     prev_nemo_date = (
         f"y{prev_day_hr.year}m{prev_day_hr.month:02d}d{prev_day_hr.day:02d}"
     )
@@ -336,7 +341,9 @@ def _calc_inter_day_interp_info(missing_hr):
     )
     with xarray.open_dataset(prev_day_hr_path, decode_cf=False) as ds:
         prev_day_time_counter = int(ds.time_counter.values[0])
-    next_day_hr = missing_hr["hr"].shift(days=+1)
+    next_day_hr = (
+        missing_hrs[-1]["hr"].floor("day").shift(days=+1, hours=+missing_hr["hr"].hour)
+    )
     next_nemo_date = (
         f"y{next_day_hr.year}m{next_day_hr.month:02d}d{next_day_hr.day:02d}"
     )
@@ -452,14 +459,17 @@ def _interpolate_intra_day_missing_var_hrs(var, missing_hrs):
 
 def _interpolate_inter_day_missing_var_hrs(var, missing_hrs):
     for missing_hr in missing_hrs:
-        interp_info = _calc_inter_day_interp_info(missing_hr)
+        interp_info = _calc_inter_day_interp_info(missing_hr, missing_hrs)
         logging.info(
             f"interpolating {var} for hour {missing_hr['hr'].hour:03d} "
             f"across days between {interp_info.prev_day_hr_path} and {interp_info.next_day_hr_path}"
         )
         for day in range((interp_info.next_day_hr - interp_info.prev_day_hr).days - 1):
             time_counter = interp_info.prev_day_time_counter + (day + 1) * 86400
-            missing_nemo_date = f"y{missing_hr['hr'].year}m{missing_hr['hr'].month:02d}d{missing_hr['hr'].day:02d}"
+            missing_date = missing_hr["hr"].floor("day").shift(days=+day)
+            missing_nemo_date = (
+                f"y{missing_date.year}m{missing_date.month:02d}d{missing_date.day:02d}"
+            )
             missing_hr_path = missing_hr["ds_path"].with_name(
                 f"gemlam_{missing_nemo_date}_{missing_hr['hr'].hour:03d}.nc"
             )
