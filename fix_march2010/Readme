@@ -1,0 +1,7 @@
+These three scripts, run in order
+bash fix_solar.sh
+bash fix_solar2.sh
+bash do_averaging.sh
+bash cat_insert.sh
+
+Insert corrected solar into the gemlam files for March 25, 26, 27, 28 when the automation failed.
