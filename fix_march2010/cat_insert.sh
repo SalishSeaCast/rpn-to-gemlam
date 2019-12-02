@@ -1,5 +1,5 @@
 m=3;
-for d in {25..28};
+for d in {25..29};
 do
 dest_file_stem=asolar_y2010m0${m}d${d}
 final_file_stem=gemlam_y2010m0${m}d${d}
