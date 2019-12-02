@@ -1,18 +1,18 @@
 m=3;
 cp /data/dlatorne/tmp-rpn-to-gem-lam/gemlam_y2010m0${m}d24_023.nc .
-for d in 26 28;
+for d in 26 28 29;
  do
  for h in {013..023};
   do  cp /data/dlatorne/tmp-rpn-to-gem-lam/gemlam_y2010m0${m}d${d}_$h.nc .
   done;
  done
-for d in 25 27;
+for d in 25 27 29;
  do
  for h in {000..012};
   do  cp /data/dlatorne/tmp-rpn-to-gem-lam/gemlam_y2010m0${m}d${d}_$h.nc .
   done;
  done
-for d in {25..28};
+for d in {25..29};
  do
  p=`expr $d - 1`;
  ncra -v solar gemlam_y2010m0${m}d${p}_023.nc gemlam_y2010m0${m}d${d}_000.nc newfile.nc
