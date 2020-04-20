@@ -118,8 +118,8 @@ and building the documentation with the commands:
     $ cd rpn-to-gemlam
     $ conda env create -f env/environment-dev.yaml
     $ source activate rpn-to-gemlam
-    (rpn-to-gemlam)$ pip install --editable ../tools/SalishSeaTools
-    (rpn-to-gemlam)$ pip install --editable .
+    (rpn-to-gemlam)$python3 -m  pip install --editable ../tools/SalishSeaTools
+    (rpn-to-gemlam)$python3 -m  pip install --editable .
 
 The :kbd:`--editable` option in the :command:`pip install` command above installs the :kbd:`rpn_to_gemlam` package from the cloned repo via symlinks so that the installed :kbd:`rpn_to_gemlam` package will be automatically updated as the repo evolves.
 
