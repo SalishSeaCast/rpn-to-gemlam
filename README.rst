@@ -35,8 +35,10 @@ License
 
 The code and documentation of the ``rpn-to-gemlam`` tool for
 generating SalishSeaCast NEMO atmospheric forcing files from ECCC RPN
-files are copyright 2019 by the Salish Sea MEOPAR Project Contributors
+files are copyright 2019-2020 by the `Salish Sea MEOPAR Project Contributors`_
 and The University of British Columbia.
+
+.. _Salish Sea MEOPAR Project Contributors: https://github.com/SalishSeaCast/docs/blob/master/CONTRIBUTORS.rst
 
 They are licensed under the Apache License, Version 2.0.
 https://www.apache.org/licenses/LICENSE-2.0

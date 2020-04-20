@@ -1,4 +1,4 @@
-#  Copyright 2019 The Salish Sea MEOPAR contributors
+#  Copyright 2019-2020 The Salish Sea MEOPAR contributors
 #  and The University of British Columbia
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,19 +17,18 @@ from the ECCC 2007-2014 archival GEMLAM files produced by the experimental phase
 of the HRPDS model.
 """
 import logging
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import arrow
 import click
 import numpy
 import xarray
-
 from salishsea_tools import viz_tools
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
