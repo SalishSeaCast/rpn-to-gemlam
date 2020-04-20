@@ -8,17 +8,17 @@ ECCC RPN to SalishSeaCast NEMO Atmospheric Forcing Conversion Tool
 .. image:: https://img.shields.io/badge/python-3.7-blue.svg
     :target: https://docs.python.org/3.7/
     :alt: Python Version
-.. image:: https://img.shields.io/badge/version%20control-hg-blue.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/
-    :alt: Mercurial on Bitbucket
+.. image:: https://img.shields.io/badge/version%20control-git-blue.svg?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam
+    :alt: Git on GitHub
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://black.readthedocs.io/en/stable/
     :alt: The uncompromising Python code formatter
 .. image:: https://readthedocs.org/projects/rpn-to-gemlam/badge/?version=latest
     :target: https://rpn-to-gemlam.readthedocs.io/en/latest/
     :alt: Documentation Status
-.. image:: https://img.shields.io/bitbucket/issues/salishsea/rpn-to-gemlam.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/issues?status=new&status=open
+.. image:: https://img.shields.io/github/issues/SalishSeaCast/rpn-to-gemlam?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam/issues
     :alt: Issue Tracker
 
 ``rpn-to-gemlam`` is a tool for generating atmospheric forcing files for the

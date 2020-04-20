@@ -26,17 +26,17 @@
 .. image:: https://img.shields.io/badge/python-3.7-blue.svg
     :target: https://docs.python.org/3.7/
     :alt: Python Version
-.. image:: https://img.shields.io/badge/version%20control-hg-blue.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/
-    :alt: Mercurial on Bitbucket
+.. image:: https://img.shields.io/badge/version%20control-git-blue.svg?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam
+    :alt: Git on GitHub
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://black.readthedocs.io/en/stable/
     :alt: The uncompromising Python code formatter
 .. image:: https://readthedocs.org/projects/rpn-to-gemlam/badge/?version=latest
     :target: https://rpn-to-gemlam.readthedocs.io/en/latest/
     :alt: Documentation Status
-.. image:: https://img.shields.io/bitbucket/issues/salishsea/rpn-to-gemlam.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/issues?status=new&status=open
+.. image:: https://img.shields.io/github/issues/SalishSeaCast/rpn-to-gemlam?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam/issues
     :alt: Issue Tracker
 
 :command:`rpn-to-gemlam` is a tool for generating atmospheric forcing files for the
@@ -53,8 +53,8 @@ Python Versions
     :target: https://docs.python.org/3.7/
     :alt: Python Version
 
-The :command:`rpn-to-gemlam` package is developed and tested using `Python`_ 3.7 or later.
-The package uses some Python language features that are not available in versions prior to 3.7,
+The :command:`rpn-to-gemlam` package is developed and tested using `Python`_ 3.7.
+The package uses some Python language features that are not available in versions prior to 3.6,
 in particular:
 
 * `formatted string literals`_
@@ -71,31 +71,31 @@ in particular:
 Getting the Code
 ================
 
-.. image:: https://img.shields.io/badge/version%20control-hg-blue.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/
-    :alt: Mercurial on Bitbucket
+.. image:: https://img.shields.io/badge/version%20control-git-blue.svg?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam
+    :alt: Git on GitHub
 
 Clone the code and documentation `repository`_,
 and the `tools repository`_ from Bitbucket with:
 
-.. _repository: https://bitbucket.org/salishsea/rpn-to-gemlam
+.. _repository: https://github.com/SalishSeaCast/rpn-to-gemlam
 .. _tools repository: https://bitbucket.org/salishsea/tools
 
 .. code-block:: bash
 
-    $ hg clone ssh://hg@bitbucket.org/salishsea/rpn-to-gemlam
+    $ git clone git@github.com:SalishSeaCast/rpn-to-gemlam.git
     $ hg clone ssh://hg@bitbucket.org/salishsea/tools
 
 or
 
 .. code-block:: bash
 
-    $ hg clone https://your-userid@bitbucket.org/salishsea/rpn-to-gemlam
+    $ git clone https://github.com/SalishSeaCast/rpn-to-gemlam.git
     $ hg clone https://your-userid@bitbucket.org/salishsea/tools
 
-if you don't have `ssh key authentication`_ set up on Bitbucket.
+if you don't have `ssh key authentication`_ set up on GitHub.
 
-.. _ssh key authentication: https://confluence.atlassian.com/bitbucket/set-up-an-ssh-key-728138079.html
+.. _ssh key authentication: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 
 
 .. _rpn-to-gemlamDevelopmentEnvironment:
@@ -117,9 +117,9 @@ and building the documentation with the commands:
 
     $ cd rpn-to-gemlam
     $ conda env create -f env/environment-dev.yaml
-    $ source activate rpn-to-gemlam
-    (rpn-to-gemlam)$python3 -m  pip install --editable ../tools/SalishSeaTools
-    (rpn-to-gemlam)$python3 -m  pip install --editable .
+    $ conda activate rpn-to-gemlam
+    (rpn-to-gemlam)$ python3 -m  pip install --editable ../tools/SalishSeaTools
+    (rpn-to-gemlam)$ python3 -m  pip install --editable .
 
 The :kbd:`--editable` option in the :command:`pip install` command above installs the :kbd:`rpn_to_gemlam` package from the cloned repo via symlinks so that the installed :kbd:`rpn_to_gemlam` package will be automatically updated as the repo evolves.
 
@@ -127,7 +127,7 @@ To deactivate the environment use:
 
 .. code-block:: bash
 
-    (rpn-to-gemlam)$ source deactivate
+    (rpn-to-gemlam)$ conda deactivate
 
 
 .. _rpn-to-gemlamCodingStyle:
@@ -183,9 +183,9 @@ Additions,
 improvements,
 and corrections to these docs are *always* welcome.
 
-The quickest way to fix typos, etc. on existing pages is to use the :guilabel:`Edit on Bitbucket` link in the upper right corner of the page to get to the online editor for the page on `Bitbucket`_.
+The quickest way to fix typos, etc. on existing pages is to use the :guilabel:`Edit on GitHub` link in the upper right corner of the page to get to the online editor for the page on `GitHub`_.
 
-.. _Bitbucket: https://bitbucket.org/salishsea/rpn-to-gemlam/
+.. _GitHub: https://github.com/SalishSeaCast/salishsea-site
 
 For more substantial work,
 and to add new pages,
@@ -310,13 +310,13 @@ The output looks something like::
 Version Control Repository
 ==========================
 
-.. image:: https://img.shields.io/badge/version%20control-hg-blue.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/
-    :alt: Mercurial on Bitbucket
+.. image:: https://img.shields.io/badge/version%20control-git-blue.svg?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam
+    :alt: Git on GitHub
 
-The :kbd:`rpn-to-gemlam` code and documentation source files are available in the :kbd:`rpn-to-gemlam` `Mercurial`_ repository at https://bitbucket.org/salishsea/rpn-to-gemlam/.
+The :kbd:`rpn-to-gemlam` code and documentation source files are available in the :kbd:`rpn-to-gemlam` `Git`_ repository at https://github.com/SalishSeaCast/rpn-to-gemlam.
 
-.. _Mercurial: https://www.mercurial-scm.org/
+.. _git: https://git-scm.org/
 
 
 .. _rpn-to-gemlamIssueTracker:
@@ -324,13 +324,13 @@ The :kbd:`rpn-to-gemlam` code and documentation source files are available in th
 Issue Tracker
 =============
 
-.. image:: https://img.shields.io/bitbucket/issues/UBC_MOAD/rpn-to-gemlam.svg
-    :target: https://bitbucket.org/salishsea/rpn-to-gemlam/issues?status=new&status=open
+.. image:: https://img.shields.io/github/issues/SalishSeaCast/rpn-to-gemlam?logo=github
+    :target: https://github.com/SalishSeaCast/rpn-to-gemlam/issues
     :alt: Issue Tracker
 
 Development tasks,
 bug reports,
-and enhancement ideas are recorded and managed in the issue tracker at https://bitbucket.org/salishsea/rpn-to-gemlam//issues.
+and enhancement ideas are recorded and managed in the issue tracker at https://github.com/SalishSeaCast/rpn-to-gemlam/issues.
 
 
 License
