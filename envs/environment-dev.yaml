@@ -4,7 +4,7 @@
 # Create a conda environment for development, testing and documentation of the package
 # with:
 #
-#   $ conda env create -f rpn-to-gemlam/environment-dev.yaml
+#   $ conda env create -f rpn-to-gemlam/envs/environment-dev.yaml
 #   $ conda activate rpn-to-gemlam
 #   (rpn-to-gemlam)$ pip install --editable ../tools/SalishSeaTools
 #   (rpn-to-gemlam)$ pip install --editable rpn-to-gemlam
