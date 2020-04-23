@@ -79,19 +79,19 @@ Clone the code and documentation `repository`_,
 and the `tools repository`_ from Bitbucket with:
 
 .. _repository: https://github.com/SalishSeaCast/rpn-to-gemlam
-.. _tools repository: https://bitbucket.org/salishsea/tools
+.. _tools repository: https://github.com/SalishSeaCast/tools
 
 .. code-block:: bash
 
     $ git clone git@github.com:SalishSeaCast/rpn-to-gemlam.git
-    $ hg clone ssh://hg@bitbucket.org/salishsea/tools
+    $ git clone git@github.com:SalishSeaCast/tools.git
 
 or
 
 .. code-block:: bash
 
     $ git clone https://github.com/SalishSeaCast/rpn-to-gemlam.git
-    $ hg clone https://your-userid@bitbucket.org/salishsea/tools
+    $ git clone https://github.com/SalishSeaCast/tools.git
 
 if you don't have `ssh key authentication`_ set up on GitHub.
 
