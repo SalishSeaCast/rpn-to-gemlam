@@ -30,7 +30,7 @@ gsw==3.3.1
 idna==2.9
 imagesize==1.2.0
 importlib-metadata==1.6.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 kiwisolver==1.2.0
 MarkupSafe==1.1.1
 matplotlib==3.2.1
