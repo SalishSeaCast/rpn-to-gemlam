@@ -43,7 +43,7 @@ pandas==1.0.3
 pathspec==0.8.0
 pluggy==0.13.0
 progressbar==2.5
-py==1.8.1
+py==1.10.0
 pycparser==2.20
 Pygments==2.7.4
 pyOpenSSL==19.1.0
