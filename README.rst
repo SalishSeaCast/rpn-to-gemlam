@@ -2,14 +2,6 @@
 ECCC RPN to SalishSeaCast NEMO Atmospheric Forcing Conversion Tool
 ******************************************************************
 
-**This repository has been archived because all the ECCC 2007-2014 archival GEMLAM files
-have been processed.**
-Please contact `@SusanEAllen`_
-or `@DougLatornell`_ if you see a need for this repository to be re-activated.
-
-.. _@SusanEAllen: https://github.com/SusanEAllen
-.. _@DougLatornell: https://github.com/douglatornell
-
 .. image:: https://img.shields.io/badge/license-Apache%202-cb2533.svg
     :target: https://www.apache.org/licenses/LICENSE-2.0
     :alt: Licensed under the Apache License, Version 2.0
@@ -28,6 +20,14 @@ or `@DougLatornell`_ if you see a need for this repository to be re-activated.
 .. image:: https://img.shields.io/github/issues/SalishSeaCast/rpn-to-gemlam?logo=github
     :target: https://github.com/SalishSeaCast/rpn-to-gemlam/issues
     :alt: Issue Tracker
+
+**This repository has been archived because all the ECCC 2007-2014 archival GEMLAM files
+have been processed.**
+Please contact `@SusanEAllen`_
+or `@DougLatornell`_ if you see a need for this repository to be re-activated.
+
+.. _@SusanEAllen: https://github.com/SusanEAllen
+.. _@DougLatornell: https://github.com/douglatornell
 
 ``rpn-to-gemlam`` is a tool for generating atmospheric forcing files for the
 SalishSeaCast NEMO model from the ECCC 2007-2014 archival GEMLAM files produced
