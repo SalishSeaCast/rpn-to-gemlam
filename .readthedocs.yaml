@@ -1,10 +1,12 @@
 version: 2
 
-# Only build HTML and JSON formats
-formats: []
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "mambaforge-23.11"
 
 conda:
   environment: envs/environment-rtd.yaml
 
-build:
-  image: latest
+# Only build HTML and JSON formats
+formats: []
