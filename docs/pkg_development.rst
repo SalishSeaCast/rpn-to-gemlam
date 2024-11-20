@@ -95,7 +95,7 @@ or
 
 if you don't have `ssh key authentication`_ set up on GitHub.
 
-.. _ssh key authentication: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+.. _ssh key authentication: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 
 
 .. _rpn-to-gemlamDevelopmentEnvironment:
@@ -104,14 +104,13 @@ Development Environment
 =======================
 
 Setting up an isolated development environment using `Conda`_ is recommended.
-Assuming that you have `Anaconda Python Distribution`_ or `Miniconda3`_ installed,
+Assuming that you have `Miniforge`_ installed,
 you can create and activate an environment called :kbd:`rpn-to-gemlam` that will have all of the Python packages necessary for development,
 testing,
 and building the documentation with the commands:
 
-.. _Conda: https://conda.io/en/latest/
-.. _Anaconda Python Distribution: https://www.anaconda.com/distribution/
-.. _Miniconda3: https://conda.io/en/latest/miniconda.html
+.. _Conda: https://docs.conda.io/en/latest/
+.. _Miniforge: https://conda-forge.org/download/
 
 .. code-block:: bash
 
@@ -142,7 +141,7 @@ Coding Style
 The :kbd:`NEMO_Nowcast` package uses the `black`_ code formatting tool to maintain a coding style that is very close to `PEP 8`_.
 
 .. _black: https://black.readthedocs.io/en/stable/
-.. _PEP 8: https://www.python.org/dev/peps/pep-0008/
+.. _PEP 8: https://peps.python.org/pep-0008/
 
 :command:`black` is installed as part of the :ref:`rpn-to-gemlamDevelopmentEnvironment` setup.
 
@@ -173,8 +172,8 @@ Documentation
 
 The ::kbd:`rpn-to-gemlam` documentation is written in `reStructuredText`_ and converted to HTML using `Sphinx`_.
 
-.. _reStructuredText: http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
-.. _Sphinx: http://www.sphinx-doc.org/en/master/
+.. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+.. _Sphinx: https://www.sphinx-doc.org/en/master/
 
 If you have write access to the `repository`_ on Bitbucket,
 whenever you push changes to Bitbucket the documentation is automatically re-built and rendered at https://rpn-to-gemlam.readthedocs.io/en/latest/.
@@ -316,7 +315,7 @@ Version Control Repository
 
 The :kbd:`rpn-to-gemlam` code and documentation source files are available in the :kbd:`rpn-to-gemlam` `Git`_ repository at https://github.com/SalishSeaCast/rpn-to-gemlam.
 
-.. _git: https://git-scm.org/
+.. _git: https://git-scm.com/
 
 
 .. _rpn-to-gemlamIssueTracker:
@@ -344,7 +343,7 @@ The code and documentation of the ``rpn-to-gemlam`` tool for
 generating SalishSeaCast NEMO atmospheric forcing files from ECCC RPN
 files are copyright 2019-2020 by the `Salish Sea MEOPAR Project Contributors`_ and The University of British Columbia.
 
-.. _Salish Sea MEOPAR Project Contributors: https://github.com/SalishSeaCast/docs/blob/master/CONTRIBUTORS.rst
+.. _Salish Sea MEOPAR Project Contributors: https://github.com/SalishSeaCast/docs/blob/main/CONTRIBUTORS.rst
 
 They are licensed under the Apache License, Version 2.0.
 https://www.apache.org/licenses/LICENSE-2.0
