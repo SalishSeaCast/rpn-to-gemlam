@@ -215,29 +215,44 @@ use:
     (rpn-to-gemlam) docs$ make clean html
 
 to do a clean build of the documentation.
-The output looks something like::
+The output looks something like:
 
-  Removing everything under '_build'...
-  Running Sphinx v1.8.5
-  making output directory...
-  loading intersphinx inventory from https://docs.python.org/objects.inv...
-  intersphinx inventory has moved: https://docs.python.org/objects.inv -> https://docs.python.org/3/objects.inv
-  building [mo]: targets for 0 po files that are out of date
-  building [html]: targets for 2 source files that are out of date
-  updating environment: 2 added, 0 changed, 0 removed
-  reading sources... [100%] pkg_development
-  looking for now-outdated files... none found
-  pickling environment... done
-  checking consistency... done
-  preparing documents... done
-  writing output... [100%] pkg_development
-  generating indices... genindex
-  writing additional pages... search
-  copying static files... done
-  copying extra files... done
-  dumping search index in English (code: en) ... done
-  dumping object inventory... done
-  build succeeded.
+.. code-block:: text
+
+    Removing everything under '_build'...
+    Running Sphinx v8.1.3
+    loading translations [en]... done
+    making output directory... done
+    loading intersphinx inventory 'python' from https://docs.python.org/objects.inv ...
+    intersphinx inventory has moved: https://docs.python.org/objects.inv -> https://docs.python.org/3/objects.inv
+    building [mo]: targets for 0 po files that are out of date
+    writing output...
+    building [html]: targets for 2 source files that are out of date
+    updating environment: [new config] 2 added, 0 changed, 0 removed
+    reading sources... [100%] pkg_development
+    looking for now-outdated files... none found
+    pickling environment... done
+    checking consistency... done
+    preparing documents... done
+    copying assets...
+    copying static files...
+    Writing evaluated template result to /media/doug/warehouse/MEOPAR/rpn-to-gemlam/docs/_build/html/_static/language_data.js
+    Writing evaluated template result to /media/doug/warehouse/MEOPAR/rpn-to-gemlam/docs/_build/html/_static/basic.css
+    Writing evaluated template result to /media/doug/warehouse/MEOPAR/rpn-to-gemlam/docs/_build/html/_static/documentation_options.js
+    Writing evaluated template result to /media/doug/warehouse/MEOPAR/rpn-to-gemlam/docs/_build/html/_static/js/versions.js
+    copying static files: done
+    copying extra files...
+    copying extra files: done
+    copying assets: done
+    writing output... [100%] pkg_development
+    generating indices... genindex done
+    highlighting module code...
+    writing additional pages... search done
+    dumping search index in English (code: en)... done
+    dumping object inventory... done
+    build succeeded.
+
+    The HTML pages are in _build/html.
 
 The HTML rendering of the docs ends up in :file:`docs/_build/html/`.
 You can open the :file:`index.html` file in that directory tree in your browser to preview the results of the build.
@@ -265,44 +280,58 @@ use:
     (rpn-to-gemlam)$ cd rpn-to-gemlam/docs/
     (rpn-to-gemlam) docs$ make linkcheck
 
-The output looks something like::
+The output looks something like:
 
-  Running Sphinx v1.8.5
-  making output directory...
-  loading pickled environment... done
-  building [mo]: targets for 0 po files that are out of date
-  building [linkcheck]: targets for 2 source files that are out of date
-  updating environment: 0 added, 0 changed, 0 removed
-  looking for now-outdated files... none found
-  preparing documents... done
-  writing output... [ 50%] index
-  (line   43) ok        https://www.apache.org/licenses/LICENSE-2.0
-  writing output... [100%] pkg_development
-  (line   21) ok        https://docs.python.org/3.7/
-  (line   56) ok        https://www.python.org/
-  (line   60) ok        https://docs.python.org/3/reference/lexical_analysis.html#f-strings
-  (line   62) ok        https://docs.python.org/3/whatsnew/3.6.html#whatsnew36-pep519
-  (line   21) ok        https://black.readthedocs.io/en/stable/
-  (line   21) ok        https://rpn-to-gemlam.readthedocs.io/en/latest/
-  (line   92) ok        https://confluence.atlassian.com/bitbucket/set-up-an-ssh-key-728138079.html
-  (line   21) ok        https://bitbucket.org/salishsea/rpn-to-gemlam/issues?status=new&status=open
-  (line  102) ok        https://www.anaconda.com/distribution/
-  (line   21) ok        https://bitbucket.org/salishsea/rpn-to-gemlam/
-  (line  137) ok        https://www.python.org/dev/peps/pep-0008/
-  (line  102) ok        https://conda.io/en/latest/
-  (line  102) ok        https://conda.io/en/latest/miniconda.html
-  (line  169) ok        http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
-  (line  169) ok        http://www.sphinx-doc.org/en/master/
-  (line   72) ok        https://bitbucket.org/salishsea/rpn-to-gemlam/
-  (line   78) ok        https://bitbucket.org/salishsea/rpn-to-gemlam
-  (line  174) ok        https://bitbucket.org/salishsea/rpn-to-gemlam
-  (line  185) ok        https://readthedocs.org/projects/rpn-to-gemlam/builds/
-  (line  246) ok        https://bitbucket.org/salishsea/rpn-to-gemlam
+.. code-block:: text
 
-  build succeeded.
+    Removing everything under '_build'...
+    Running Sphinx v8.1.3
+    loading translations [en]... done
+    making output directory... done
+    loading intersphinx inventory 'python' from https://docs.python.org/objects.inv ...
+    intersphinx inventory has moved: https://docs.python.org/objects.inv -> https://docs.python.org/3/objects.inv
+    building [mo]: targets for 0 po files that are out of date
+    writing output...
+    building [linkcheck]: targets for 2 source files that are out of date
+    updating environment: [new config] 2 added, 0 changed, 0 removed
+    reading sources... [100%] pkg_development
+    looking for now-outdated files... none found
+    pickling environment... done
+    checking consistency... done
+    preparing documents... done
+    copying assets...
+    copying assets: done
+    writing output... [100%] pkg_development
 
-  Look for any errors in the above output or in _build/linkcheck/output.txt
+    ( pkg_development: line   96) ok        https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+    ( pkg_development: line   21) ok        https://docs.python.org/3.7/
+    ( pkg_development: line   21) ok        https://black.readthedocs.io/en/stable/
+    ( pkg_development: line  106) ok        https://docs.conda.io/en/latest/
+    ( pkg_development: line   62) ok        https://docs.python.org/3/whatsnew/3.6.html#whatsnew36-pep519
+    ( pkg_development: line   60) ok        https://docs.python.org/3/reference/lexical_analysis.html#f-strings
+    ( pkg_development: line  316) ok        https://git-scm.com/
+    ( pkg_development: line  106) ok        https://conda-forge.org/download/
+    ( pkg_development: line   21) ok        https://github.com/SalishSeaCast/rpn-to-gemlam/issues
+    ( pkg_development: line   32) ok        https://img.shields.io/badge/code%20style-black-000000.svg
+    ( pkg_development: line   23) ok        https://img.shields.io/badge/license-Apache%202-cb2533.svg
+    ( pkg_development: line   26) ok        https://img.shields.io/badge/python-3.7-blue.svg
+    (           index: line   38) ok        https://github.com/SalishSeaCast/docs/blob/main/CONTRIBUTORS.rst
+    ( pkg_development: line   29) ok        https://img.shields.io/badge/version%20control-git-blue.svg?logo=github
+    ( pkg_development: line  185) ok        https://github.com/SalishSeaCast/salishsea-site
+    ( pkg_development: line   38) ok        https://img.shields.io/github/issues/SalishSeaCast/rpn-to-gemlam?logo=github
+    ( pkg_development: line  141) ok        https://peps.python.org/pep-0008/
+    ( pkg_development: line   21) ok        https://github.com/SalishSeaCast/rpn-to-gemlam
+    (           index: line   45) ok        https://www.apache.org/licenses/LICENSE-2.0
+    ( pkg_development: line   21) ok        https://rpn-to-gemlam.readthedocs.io/en/latest/
+    ( pkg_development: line   35) ok        https://readthedocs.org/projects/rpn-to-gemlam/badge/?version=latest
+    ( pkg_development: line   78) ok        https://github.com/SalishSeaCast/tools
+    ( pkg_development: line   56) ok        https://www.python.org/
+    ( pkg_development: line  173) ok        https://www.sphinx-doc.org/en/master/
+    ( pkg_development: line  173) ok        https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+    ( pkg_development: line  189) ok        https://readthedocs.org/projects/rpn-to-gemlam/builds/
+    build succeeded.
 
+    Look for any errors in the above output or in _build/linkcheck/output.txt
 
 .. _rpn-to-gemlamVersionControlRepository:
 
