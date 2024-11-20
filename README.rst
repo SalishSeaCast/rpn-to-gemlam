@@ -2,6 +2,14 @@
 ECCC RPN to SalishSeaCast NEMO Atmospheric Forcing Conversion Tool
 ******************************************************************
 
+**This repository has been archived because all the ECCC 2007-2014 archival GEMLAM files
+have been processed.**
+Please contact `@SusanEAllen`_
+or `@DougLatornell`_ if you see a need for this repository to be re-activated.
+
+.. _@SusanEAllen: https://github.com/SusanEAllen
+.. _@DougLatornell: https://github.com/douglatornell
+
 .. image:: https://img.shields.io/badge/license-Apache%202-cb2533.svg
     :target: https://www.apache.org/licenses/LICENSE-2.0
     :alt: Licensed under the Apache License, Version 2.0
